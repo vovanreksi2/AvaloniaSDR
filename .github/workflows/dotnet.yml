@@ -20,9 +20,8 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
-    - run: ls src/AvaloniaSDR
-    - name: List repo files
-      run: ls -R
+    - name: List all files
+      run: ls -Rls -R
     - name: Restore dependencies
       run: dotnet restore src/AvaloniaSDR/AvaloniaSDR.sln
     
