@@ -11,9 +11,6 @@ internal class OneSignalDataGenerator : IDataGenerator
     public OneSignalDataGenerator()
     {
         frequencyStep = CalculateFrequencyStep(SDRConstants.FrequencyStart, SDRConstants.FrequencyEnd);
-
-        var data = GenerateData();
-        SaveDataToCsv(data);
     }
 
     public IEnumerable<SignalDataPoint> GenerateData()
@@ -52,29 +49,5 @@ internal class OneSignalDataGenerator : IDataGenerator
     {
         var frequencyRange = frequencyEnd - frequencyStart;
         return frequencyRange / SDRConstants.Points;
-    }
-
-    private void SaveDataToCsv(IEnumerable<SignalDataPoint> data)
-    {
-        var csvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data.csv");
-
-        try
-        {
-            using (var writer = new StreamWriter(csvPath, false, Encoding.UTF8))
-            {
-                // Write header
-                writer.WriteLine("Frequency,SignalPower");
-
-                // Write data rows
-                foreach (var point in data)
-                {
-                    writer.WriteLine($"{point.Frequency},{point.SignalPower}");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error saving CSV: {ex.Message}");
-        }
     }
 }

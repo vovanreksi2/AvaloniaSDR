@@ -63,8 +63,13 @@ public class OneSignalDataProvider(IDataGenerator dataGenerator) : IDataProvider
         DataGenerated?.Invoke(data);
     }
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
-        throw new NotImplementedException();
+        if (IsRunning && _worker != null) 
+            await StopAsync();
+
+        _cts?.Dispose();
+        _cts = null;
+        _worker = null;
     }
 }
