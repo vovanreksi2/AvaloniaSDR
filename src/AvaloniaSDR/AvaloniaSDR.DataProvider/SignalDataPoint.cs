@@ -1,6 +1,3 @@
 ﻿namespace AvaloniaSDR.DataProvider;
 
-public record SignalDataPoint(int Frequency, int SignalPower);
-
-
-
+public record SignalDataPoint(double Frequency, double SignalPower);

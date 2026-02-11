@@ -1,41 +1,80 @@
 ﻿using AvaloniaSDR.Constants;
-using Microsoft.Extensions.DependencyInjection;
+using System.Text;
 
 namespace AvaloniaSDR.DataProvider;
 
 public class SimpleDataGenerator : IDataGenerator
 {
-    private readonly Random random;
+    private readonly Random random = new();
+    private readonly double frequencyStep; 
 
     public SimpleDataGenerator()
     {
-        random = new Random();    
+        frequencyStep = CalculateFrequencyStep(SDRConstants.FrequencyStart, SDRConstants.FrequencyEnd);
+
+        var data = GenerateData();
+        SaveDataToCsv(data);
     }
 
     public IEnumerable<SignalDataPoint> GenerateData()
     {
-        var data = new SignalDataPoint[SDRConstants.Points];
-
-        //TODO: Add noise
         for (int i = 0; i < SDRConstants.Points; i++)
         {
-            var frequency = random.Next(SDRConstants.FrequencyStart, SDRConstants.FrequencyEnd + 1);
-            var signalPower = random.Next(SDRConstants.SignalPowerStart, SDRConstants.SignalPowerMax + 1);
+            var frequency = SDRConstants.FrequencyStart + (i * frequencyStep);
 
-            data[i] = new SignalDataPoint(frequency, signalPower);
-            yield return data[i];
+            var noise = GenerateNoise();
+
+            var signal = GenerateSignal(frequency);
+
+            yield return new SignalDataPoint(frequency, noise + signal);
         }
     }
-}
 
+    private double GenerateNoise() => SDRConstants.NoiseBaseLevel + NextGaussian() * SDRConstants.NoiseRandomLevel;
 
-public static class DataGeneratorExtensions
-{
-    extension(IServiceCollection source)
+    private double GenerateSignal(double frequency)
     {
-        public IServiceCollection AddDataGenerator()
+        var delta = frequency - SDRConstants.SignalCenterFrequencyMHz;
+        var signal = SDRConstants.SignalPower *
+            Math.Exp(-(delta * delta) / (2 * SDRConstants.SignalWidthMHz * SDRConstants.SignalWidthMHz));
+        return signal;
+    }
+
+    private double NextGaussian()
+    {
+        double u1 = 1.0 - random.NextDouble();
+        double u2 = 1.0 - random.NextDouble();
+        return Math.Sqrt(-2.0 * Math.Log(u1)) *
+            Math.Cos(2.0 * Math.PI * u2);
+    }
+
+    private double CalculateFrequencyStep(double frequencyStart, double frequencyEnd)
+    {
+        var frequencyRange = frequencyEnd - frequencyStart;
+        return frequencyRange / SDRConstants.Points;
+    }
+
+    private void SaveDataToCsv(IEnumerable<SignalDataPoint> data)
+    {
+        var csvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data.csv");
+
+        try
         {
-            return source.AddSingleton<IDataGenerator, SimpleDataGenerator>();
+            using (var writer = new StreamWriter(csvPath, false, Encoding.UTF8))
+            {
+                // Write header
+                writer.WriteLine("Frequency,SignalPower");
+
+                // Write data rows
+                foreach (var point in data)
+                {
+                    writer.WriteLine($"{point.Frequency},{point.SignalPower}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving CSV: {ex.Message}");
         }
     }
 }

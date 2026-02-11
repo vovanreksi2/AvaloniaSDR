@@ -59,6 +59,7 @@ public partial class App : Application
         services.AddDataGenerator();
     }
 
+
     private void Log(Exception exception)
     {
         if (_logger != null)
