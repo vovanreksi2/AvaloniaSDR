@@ -15,6 +15,18 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+    <StackPanel>
+        <TextBlock Text="Hello, AvaloniaSDR!" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="24"/>
+        <Button Command="{Binding StartCommand}" Content="Start"/> 
+        <Button Command="{Binding StopCommand}" Content="Stop"/> 
+        <Button Command="{Binding UpdateCommand}" Content="Update"/> 
+
+        <TextBox
+  Name="tbMultiLine"
+  TextWrapping="Wrap"
+  AcceptsReturn="True"  
+  Height="500"
+   Text="{Binding Text}"/>
+    </StackPanel>
 
 </Window>

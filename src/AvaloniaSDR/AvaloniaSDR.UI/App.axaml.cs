@@ -46,7 +46,6 @@ public partial class App : Application
 
     private void ConfigureServices(IServiceCollection services)
     {
-        // Add logging
         services.AddLogging(builder =>
         {
             builder.AddConsole();
@@ -56,8 +55,9 @@ public partial class App : Application
         services.AddSingleton<MainWindow>();
         services.AddSingleton<MainWindowViewModel>();
 
-        services.AddDataGenerator();
+        services.AddDataProvider();
     }
+
 
     private void Log(Exception exception)
     {
