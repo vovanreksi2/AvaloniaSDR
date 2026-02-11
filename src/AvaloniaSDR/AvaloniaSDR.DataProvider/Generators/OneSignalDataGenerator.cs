@@ -1,14 +1,14 @@
 ﻿using AvaloniaSDR.Constants;
 using System.Text;
 
-namespace AvaloniaSDR.DataProvider;
+namespace AvaloniaSDR.DataProvider.Generators;
 
-public class SimpleDataGenerator : IDataGenerator
+internal class OneSignalDataGenerator : IDataGenerator
 {
     private readonly Random random = new();
     private readonly double frequencyStep; 
 
-    public SimpleDataGenerator()
+    public OneSignalDataGenerator()
     {
         frequencyStep = CalculateFrequencyStep(SDRConstants.FrequencyStart, SDRConstants.FrequencyEnd);
 
