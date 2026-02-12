@@ -31,4 +31,10 @@
   <ItemGroup>
     <ProjectReference Include="..\AvaloniaSDR.DataProvider\AvaloniaSDR.DataProvider.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Views\SpectrumView.axaml.cs">
+      <DependentUpon>SpectrumView.axaml</DependentUpon>
+    </Compile>
+  </ItemGroup>
 </Project>
