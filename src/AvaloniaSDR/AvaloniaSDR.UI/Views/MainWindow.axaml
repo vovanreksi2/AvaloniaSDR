@@ -16,7 +16,7 @@
 		<vm:MainWindowViewModel/>
 	</Design.DataContext>
 
-	<Grid RowDefinitions="60 * 2*" ShowGridLines="False">
+	<Grid RowDefinitions="60 * 2*" ShowGridLines="False" Width="1024">
 		<StackPanel Orientation="Horizontal" Margin="5" >
 			<Button Command="{Binding StartCommand}" 
 					Content="Start"
@@ -31,11 +31,11 @@
 
 		<Grid Grid.Row="1">
 			<local:SpectrumView SpectrumPoints="{Binding SpectrumData}"/>
-
 		</Grid>
-
-		<Control Grid.Row="2"/>
-
+		
+		<Grid Grid.Row="2">
+			<local:WaterflowView WaterflowPoints="{Binding SpectrumData}"/>
+		</Grid>
 	</Grid>
 
 </Window>

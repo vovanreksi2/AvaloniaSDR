@@ -42,7 +42,9 @@ public partial class SpectrumView : Control
         if (change.Property != BoundsProperty) return;
 
         var bounds = (Rect)change.NewValue!;
-        if (bounds.Width == 0 && bounds.Height == 0 || _lastSize == bounds.Size) return;
+        if (bounds.Width == 0 && bounds.Height == 0) return;
+
+        if (_lastSize == bounds.Size) return;
 
         _lastSize = bounds.Size;
         
@@ -107,7 +109,9 @@ public partial class SpectrumView : Control
         {
             double x = i * width / (points.Length - 1);
 
+           //Need to put this value from another thread
             double normalized = (points[i].Y - minDb) / (maxDb - minDb);
+
             double y = height - normalized * height;
 
             if (i == 0)

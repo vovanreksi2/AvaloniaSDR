@@ -33,6 +33,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="Views\WaterflowView.axaml.cs">
+      <DependentUpon>WaterflowView.axaml</DependentUpon>
+    </Compile>
     <Compile Update="Views\SpectrumView.axaml.cs">
       <DependentUpon>SpectrumView.axaml</DependentUpon>
     </Compile>
