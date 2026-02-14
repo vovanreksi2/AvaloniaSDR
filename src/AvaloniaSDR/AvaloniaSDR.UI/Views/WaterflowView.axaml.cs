@@ -22,12 +22,13 @@ public partial class WaterflowView : Control
 
     private WriteableBitmap? bitmap;
     private int[] pixelBuffer;
-    private readonly WaterfallColor colorProvider;
+    private readonly WaterfallColorProvider colorProvider;
+    private int currentRow = 0;
 
     public WaterflowView()
     {
         InitializeComponent();
-        colorProvider = new WaterfallColor();
+        colorProvider = new WaterfallColorProvider();
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -50,7 +51,7 @@ public partial class WaterflowView : Control
         _lastSize = bounds.Size;
 
         bitmap = new WriteableBitmap(new PixelSize((int)bounds.Width, (int)bounds.Height), new Vector(96, 96));
-        pixelBuffer = new int[(int)bounds.Width * 200];
+        pixelBuffer = new int[(int)bounds.Width * (int)bounds.Height];
     }
 
     public override void Render(DrawingContext context)
@@ -71,99 +72,23 @@ public partial class WaterflowView : Control
         if (WaterflowPoints == null || WaterflowPoints.Length == 0) return;
 
         WriteRowTopDown(bitmap, points);
-        //MoveWaterflowBitmap(bitmap);
-
-        //WriteRow(bitmap, points);
-    }
-
-    //private void MoveWaterflowBitmap(WriteableBitmap bitmap)
-    //{
-    //    int width = bitmap.PixelSize.Width;
-    //    int height = 200;
-
-    //    int rowWidth = width;
-
-    //    Array.Copy(
-    //            pixelBuffer,
-    //            0,
-    //            pixelBuffer,
-    //            rowWidth,
-    //            (height - 1) * rowWidth
-    //        );
-    //}
-
-    //public void WriteRow(WriteableBitmap bitmap, NormalizeSignalPoint[] points)
-    //{
-    //    int width = bitmap.PixelSize.Width;
-
-    //    for (int i = 0; i < width; i++)
-    //    {
-    //        var color = colorProvider.GetColor(points[i].SignalPower);
-
-    //        pixelBuffer[i] = color;
-    //    }
-
-    //    byte[] byteBuffer = new byte[pixelBuffer.Length * 4];
-    //    Buffer.BlockCopy(pixelBuffer, 0, byteBuffer, 0, byteBuffer.Length);
-
-    //    using var fb = bitmap.Lock();
-    //    Marshal.Copy(byteBuffer, 0, fb.Address, byteBuffer.Length);
-    //}
-
-    private int currentRow = 0;
-
-    public void WriteRowOptimized(WriteableBitmap bitmap, NormalizeSignalPoint[] points)
-    {
-        int width = bitmap.PixelSize.Width;
-        int height = 200;
-
-        // Записуємо кольори нового рядка у поточний рядок циклічного буфера
-        for (int i = 0; i < width; i++)
-        {
-            // GetColor повертає uint ARGB → приводимо до int
-            pixelBuffer[currentRow * width + i] = unchecked((int)colorProvider.GetColor(points[i].SignalPower));
-        }
-
-        // Лок бітмапу
-        using var fb = bitmap.Lock();
-
-        // Копіюємо всі рядки у WriteableBitmap циклічно
-        for (int row = 0; row < height; row++)
-        {
-            int srcRow = (currentRow + row) % height;
-            Marshal.Copy(
-                pixelBuffer,
-                srcRow * width,
-                fb.Address + row * width * 4, // 4 байти на піксель
-                width
-            );
-        }
-
-        // Переходимо до наступного рядка
-        currentRow = (currentRow + 1) % height;
     }
 
     public void WriteRowTopDown(WriteableBitmap bitmap, NormalizeSignalPoint[] points)
     {
         int width = bitmap.PixelSize.Width;
-        int height = 200;
+        int height = bitmap.PixelSize.Height;
 
-        // Записуємо новий рядок у циклічний буфер
         for (int i = 0; i < width; i++)
         {
             pixelBuffer[currentRow * width + i] = unchecked((int)colorProvider.GetColor(points[i].SignalPower));
         }
 
         using var fb = bitmap.Lock();
-
-
-        // Відображаємо рядки у зворотному порядку
         for (int row = 0; row < height; row++)
         {
-            // srcRow — індекс рядка у циклічному буфері
-            int srcRow = (currentRow - row + height) % height; // <-- основна зміна
+            int srcRow = (currentRow - row + height) % height; 
 
-            // destRow — рядок у бітмапі
             int destRow = row;
 
             Marshal.Copy(
@@ -174,7 +99,6 @@ public partial class WaterflowView : Control
             );
         }
 
-        // Зміщуємо currentRow на наступний рядок
         currentRow = (currentRow + 1) % height;
     }
 }

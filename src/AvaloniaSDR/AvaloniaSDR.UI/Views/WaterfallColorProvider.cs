@@ -5,12 +5,12 @@ namespace AvaloniaSDR.UI.Views;
 
 public partial class WaterflowView
 {
-    public class WaterfallColor
+    public class WaterfallColorProvider
     {
         private readonly uint[] lut = [];
         private const int lutSize = 256;
 
-        public WaterfallColor()
+        public WaterfallColorProvider()
         {
             var gradientStops = new List<(double offset, Color color)>
         {
@@ -56,7 +56,7 @@ public partial class WaterflowView
 
         public uint GetColor(double signalPower)
         {
-            int index = (int)(signalPower * (lutSize - 1));
+            var index = (int)(signalPower * (lutSize - 1));
 
             return lut[index];
 

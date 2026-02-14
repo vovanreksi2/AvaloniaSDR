@@ -1,5 +1,4 @@
 ﻿using AvaloniaSDR.Constants;
-using System.Text;
 
 namespace AvaloniaSDR.DataProvider.Generators;
 
@@ -23,8 +22,8 @@ internal class OneSignalDataGenerator : IDataGenerator
             var noise = GenerateNoise();
 
             var signal = GenerateSignal(frequency);
-
-            frame[i] = new SignalDataPoint(frequency, noise + signal);
+            frame[i].Frequency = frequency;
+            frame[i].SignalPower = noise + signal;
         }
         return frame;
     }
@@ -44,7 +43,7 @@ internal class OneSignalDataGenerator : IDataGenerator
         double u1 = 1.0 - random.NextDouble();
         double u2 = 1.0 - random.NextDouble();
         return Math.Sqrt(-2.0 * Math.Log(u1)) *
-            Math.Cos(2.0 * Math.PI * u2);
+            Math.Sin(2.0 * Math.PI * u2);
     }
 
     private double CalculateFrequencyStep(double frequencyStart, double frequencyEnd)
