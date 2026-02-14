@@ -2,5 +2,5 @@
 
 public interface IDataGenerator
 {
-    IEnumerable<SignalDataPoint> GenerateData();
+    SignalDataPoint[] GenerateData();
 }

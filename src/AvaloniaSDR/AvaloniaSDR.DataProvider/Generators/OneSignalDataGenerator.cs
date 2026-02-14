@@ -7,13 +7,14 @@ internal class OneSignalDataGenerator : IDataGenerator
 {
     private readonly Random random = new();
     private readonly double frequencyStep; 
+    private readonly SignalDataPoint[] frame = new SignalDataPoint[SDRConstants.Points];
 
     public OneSignalDataGenerator()
     {
         frequencyStep = CalculateFrequencyStep(SDRConstants.FrequencyStart, SDRConstants.FrequencyEnd);
     }
 
-    public IEnumerable<SignalDataPoint> GenerateData()
+    public SignalDataPoint[] GenerateData()
     {
         for (int i = 0; i < SDRConstants.Points; i++)
         {
@@ -23,8 +24,9 @@ internal class OneSignalDataGenerator : IDataGenerator
 
             var signal = GenerateSignal(frequency);
 
-            yield return new SignalDataPoint(frequency, noise + signal);
+            frame[i] = new SignalDataPoint(frequency, noise + signal);
         }
+        return frame;
     }
 
     private double GenerateNoise() => SDRConstants.NoiseBaseLevel + NextGaussian() * SDRConstants.NoiseRandomLevel;
