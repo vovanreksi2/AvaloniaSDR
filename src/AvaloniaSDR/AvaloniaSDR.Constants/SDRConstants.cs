@@ -7,15 +7,15 @@ public class SDRConstants
 
     public const int SignalPowerStart = -120;
     public const int SignalPowerMax = -20;
-    public const int Points = 1024;
+    public const int Points = 4096;
 
 
     public const double SignalCenterFrequencyMHz = 100.0;
     public const double SignalPower = 60.0;
-    public const double SignalWidthMHz = 0.05;
+    public const double SignalWidthMHz = 0.5;
 
     public const double NoiseBaseLevel = -100.0;
-    public const double NoiseRandomLevel = 2.0;
+    public const double NoiseRandomLevel = 0.5;
 
-    public const int UpdateIntervalInSec = 20;
+    public const int UpdateIntervalInSec = 120;
 }

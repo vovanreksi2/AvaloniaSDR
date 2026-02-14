@@ -1,13 +1,18 @@
 ﻿using Avalonia;
+using Avalonia.Threading;
+using AvaloniaSDR.Constants;
 using AvaloniaSDR.DataProvider;
 using AvaloniaSDR.DataProvider.Providers;
+using DynamicData.Aggregation;
 using ReactiveUI;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace AvaloniaSDR.UI.ViewModels;
 
@@ -18,8 +23,9 @@ public class MainWindowViewModel : ViewModelBase
     public ICommand StartCommand { get; }
     public ICommand StopCommand { get; }
 
-    private Point[]? spectrumData;
-    public Point[]? SpectrumData { get => spectrumData; set => this.RaiseAndSetIfChanged(ref spectrumData, value); }
+    private NormalizeSignalPoint[]? spectrumData;
+    public NormalizeSignalPoint[]? SpectrumData { get => spectrumData; set => this.RaiseAndSetIfChanged(ref spectrumData, value); }
+
 
     public MainWindowViewModel() : this(null!)
     {
@@ -31,20 +37,28 @@ public class MainWindowViewModel : ViewModelBase
         StartCommand = ReactiveCommand.CreateFromTask(StartDataProviderAsync);
         StopCommand = ReactiveCommand.CreateFromTask(StopDataProviderAsync);
         this.dataProvider = dataProvider;
-        this.dataProvider.DataGenerated += OnDataGenerated;
-    }
- 
-
-    private void OnDataGenerated(IEnumerable<SignalDataPoint> data)
-    {
-        SpectrumData = [.. data.Select(x => new Point(x.Frequency, x.SignalPower))];
     }
 
     public async Task StartDataProviderAsync()
     {
         try
         {
+            var tmp = SDRConstants.SignalPowerMax - SDRConstants.SignalPowerStart;
+
             dataProvider.Start();
+
+            _ = Task.Run(async () =>
+            {
+                await foreach (var frame in dataProvider.Reader.ReadAllAsync())
+                {
+                    var data = new NormalizeSignalPoint[frame.Length];
+                    for (int i = 0; i < frame.Length; i++)
+                    {
+                        data[i] = new NormalizeSignalPoint(frame[i].Frequency, (frame[i].SignalPower - SDRConstants.SignalPowerStart) / tmp);
+                    }
+                    SpectrumData = data;
+                }
+            });
         }
         catch (Exception ex)
         {
@@ -64,3 +78,6 @@ public class MainWindowViewModel : ViewModelBase
         }
     }
 }
+
+
+public record struct NormalizeSignalPoint(double Frequency, double SignalPower);

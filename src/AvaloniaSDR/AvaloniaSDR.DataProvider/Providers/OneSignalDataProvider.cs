@@ -1,5 +1,6 @@
 ﻿using AvaloniaSDR.Constants;
 using AvaloniaSDR.DataProvider.Generators;
+using System.Threading.Channels;
 
 namespace AvaloniaSDR.DataProvider.Providers;
 
@@ -16,6 +17,13 @@ public class OneSignalDataProvider(IDataGenerator dataGenerator) : IDataProvider
     public bool IsRunning => _worker != null && !_worker.IsCompleted;
 
     private int updateIntervalInMs = 1000 / SDRConstants.UpdateIntervalInSec;
+
+    private readonly Channel<SignalDataPoint[]> _channel = Channel.CreateBounded<SignalDataPoint[]>(new BoundedChannelOptions(1)
+    {
+        FullMode = BoundedChannelFullMode.DropOldest
+    });
+
+    public ChannelReader<SignalDataPoint[]> Reader => _channel.Reader;
 
     public void Start()
     {
@@ -53,14 +61,14 @@ public class OneSignalDataProvider(IDataGenerator dataGenerator) : IDataProvider
 
         while (await timer.WaitForNextTickAsync(token))
         {
-            GenerateData();
+            var data = dataGenerator.GenerateData();
+            await _channel.Writer.WriteAsync(data, token);
         }
     }
 
-    private void GenerateData()
+    private async Task GenerateData()
     {
-        var data = dataGenerator.GenerateData();
-        DataGenerated?.Invoke(data);
+       
     }
 
     public async ValueTask DisposeAsync()
