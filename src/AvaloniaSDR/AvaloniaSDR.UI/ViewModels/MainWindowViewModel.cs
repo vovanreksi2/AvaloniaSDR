@@ -1,15 +1,10 @@
-﻿using Avalonia;
-using Avalonia.Threading;
+﻿using Avalonia.Threading;
 using AvaloniaSDR.Constants;
 using AvaloniaSDR.DataProvider;
 using AvaloniaSDR.DataProvider.Providers;
-using DynamicData.Aggregation;
 using ReactiveUI;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using static System.Runtime.InteropServices.JavaScript.JSType;
@@ -23,8 +18,20 @@ public class MainWindowViewModel : ViewModelBase
     public ICommand StartCommand { get; }
     public ICommand StopCommand { get; }
 
-    private NormalizeSignalPoint[]? spectrumData;
-    public NormalizeSignalPoint[]? SpectrumData { get => spectrumData; set => this.RaiseAndSetIfChanged(ref spectrumData, value); }
+    private SignalDataPoint[]? spectrumData;
+    public SignalDataPoint[]? SpectrumData 
+    { 
+        get => spectrumData; 
+        set => 
+            this.RaiseAndSetIfChanged(ref spectrumData, value); 
+    }
+
+    private long frameVersion;
+    public long FrameVersion
+    {
+        get => frameVersion;
+        set => this.RaiseAndSetIfChanged(ref frameVersion, value);
+    }
 
 
     public MainWindowViewModel() : this(null!)
@@ -46,17 +53,19 @@ public class MainWindowViewModel : ViewModelBase
             var tmp = SDRConstants.SignalPowerMax - SDRConstants.SignalPowerStart;
 
             dataProvider.Start();
-
             _ = Task.Run(async () =>
             {
                 await foreach (var frame in dataProvider.Reader.ReadAllAsync())
                 {
-                    var data = new NormalizeSignalPoint[frame.Length];
                     for (int i = 0; i < frame.Length; i++)
                     {
-                        data[i] = new NormalizeSignalPoint(frame[i].Frequency, (frame[i].SignalPower - SDRConstants.SignalPowerStart) / tmp);
+                        frame[i].SignalPower = (frame[i].SignalPower - SDRConstants.SignalPowerStart) / tmp;
                     }
-                    SpectrumData = data;
+                    await  Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        SpectrumData = frame;
+                        FrameVersion++;
+                    });  
                 }
             });
         }

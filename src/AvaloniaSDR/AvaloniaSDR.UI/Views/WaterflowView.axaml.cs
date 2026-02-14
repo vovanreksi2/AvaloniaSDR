@@ -2,20 +2,35 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
-using AvaloniaSDR.UI.ViewModels;
+using Avalonia.Platform;
+using Avalonia.Rendering.SceneGraph;
+using Avalonia.Skia;
+using AvaloniaSDR.Constants;
+using AvaloniaSDR.DataProvider;
+using SkiaSharp;
+using System;
 using System.Runtime.InteropServices;
 
 namespace AvaloniaSDR.UI.Views;
 
 public partial class WaterflowView : Control
 {
-    public static readonly StyledProperty<NormalizeSignalPoint[]?> WaterflowPointsProperty =
-    AvaloniaProperty.Register<WaterflowView, NormalizeSignalPoint[]?>(nameof(WaterflowPoints));
+    public static readonly StyledProperty<SignalDataPoint[]?> WaterflowPointsProperty =
+    AvaloniaProperty.Register<WaterflowView, SignalDataPoint[]?>(nameof(WaterflowPoints));
 
-    public NormalizeSignalPoint[]? WaterflowPoints
+    public SignalDataPoint[]? WaterflowPoints
     {
         get => GetValue(WaterflowPointsProperty);
         set => SetValue(WaterflowPointsProperty, value);
+    }
+
+    public static readonly StyledProperty<long> FrameVersionProperty =
+    AvaloniaProperty.Register<WaterflowView, long>(nameof(FrameVersion));
+
+    public long FrameVersion
+    {
+        get => GetValue(FrameVersionProperty);
+        set => SetValue(FrameVersionProperty, value);
     }
 
     private Size _lastSize;
@@ -35,11 +50,13 @@ public partial class WaterflowView : Control
     {
         base.OnPropertyChanged(change);
 
-        if (change.Property == WaterflowPointsProperty)
+        if (change.Property == WaterflowPointsProperty || change.Property == FrameVersionProperty)
         {
-            var points = (NormalizeSignalPoint[])change.NewValue!;
-            UpdateWaterflow(points);
-            InvalidateVisual();
+            if (WaterflowPoints != null)
+            {
+                UpdateWaterflow(WaterflowPoints);
+                InvalidateVisual();
+            }
         }
 
         if (change.Property != BoundsProperty) return;
@@ -67,38 +84,30 @@ public partial class WaterflowView : Control
         );
     }
 
-    private void UpdateWaterflow(NormalizeSignalPoint[] points)
+    private void UpdateWaterflow(SignalDataPoint[] points)
     {
         if (WaterflowPoints == null || WaterflowPoints.Length == 0) return;
 
         WriteRowTopDown(bitmap, points);
     }
 
-    public void WriteRowTopDown(WriteableBitmap bitmap, NormalizeSignalPoint[] points)
+    public void WriteRowTopDown(WriteableBitmap bitmap, SignalDataPoint[] points)
     {
         int width = bitmap.PixelSize.Width;
         int height = bitmap.PixelSize.Height;
 
+        Span<uint> lineBuffer = stackalloc uint[width];
         for (int i = 0; i < width; i++)
-        {
-            pixelBuffer[currentRow * width + i] = unchecked((int)colorProvider.GetColor(points[i].SignalPower));
-        }
+            lineBuffer[i] = colorProvider.GetColor(points[i].SignalPower);
 
         using var fb = bitmap.Lock();
-        for (int row = 0; row < height; row++)
+        
+        unsafe
         {
-            int srcRow = (currentRow - row + height) % height; 
+            Span<uint> pixels = new((void*)fb.Address, width * height);
+            pixels[..(width * (height - 1))].CopyTo(pixels[width..]);  
 
-            int destRow = row;
-
-            Marshal.Copy(
-                pixelBuffer,
-                srcRow * width,
-                fb.Address + destRow * width * 4,
-                width
-            );
+            lineBuffer.CopyTo(pixels); 
         }
-
-        currentRow = (currentRow + 1) % height;
     }
 }

@@ -1,20 +1,33 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
-using AvaloniaSDR.UI.ViewModels;
-using System.Linq;
+using Avalonia.Platform;
+using Avalonia.Rendering.SceneGraph;
+using Avalonia.Skia;
+using AvaloniaSDR.Constants;
+using AvaloniaSDR.DataProvider;
+using SkiaSharp;
 
 namespace AvaloniaSDR.UI.Views;
 
 public partial class SpectrumView : Control
 {
-    public static readonly StyledProperty<NormalizeSignalPoint[]?> SpectrumPointsProperty =
-    AvaloniaProperty.Register<SpectrumView, NormalizeSignalPoint[]?>(nameof(SpectrumPoints));
+    public static readonly StyledProperty<SignalDataPoint[]?> SpectrumPointsProperty =
+    AvaloniaProperty.Register<SpectrumView, SignalDataPoint[]?>(nameof(SpectrumPoints));
 
-    public NormalizeSignalPoint[]? SpectrumPoints
+    public SignalDataPoint[]? SpectrumPoints
     {
         get => GetValue(SpectrumPointsProperty);
         set => SetValue(SpectrumPointsProperty, value);
+    }
+
+    public static readonly StyledProperty<long> FrameVersionProperty =
+    AvaloniaProperty.Register<SpectrumView, long>(nameof(FrameVersion));
+
+    public long FrameVersion
+    {
+        get => GetValue(FrameVersionProperty);
+        set => SetValue(FrameVersionProperty, value);
     } 
 
     private Size _lastSize;
@@ -34,7 +47,7 @@ public partial class SpectrumView : Control
     {
         base.OnPropertyChanged(change);
 
-        if (change.Property == SpectrumPointsProperty)
+        if (change.Property == SpectrumPointsProperty || change.Property == FrameVersionProperty)
         {
             UpdateSpectrumGeometry(_lastSize);
             InvalidateVisual();
@@ -91,7 +104,7 @@ public partial class SpectrumView : Control
 
     private void UpdateSpectrumGeometry(Size size)
     {
-        if (SpectrumPoints == null || !SpectrumPoints.Any())
+        if (SpectrumPoints == null || SpectrumPoints.Length == 0)
             return;
 
         var width = size.Width;
@@ -117,4 +130,6 @@ public partial class SpectrumView : Control
 
         spectrumGeometry = geometry;
     }
+
+
 }
