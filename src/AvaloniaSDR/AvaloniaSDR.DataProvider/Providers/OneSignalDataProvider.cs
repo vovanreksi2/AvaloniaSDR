@@ -16,14 +16,14 @@ public class OneSignalDataProvider(IDataGenerator dataGenerator) : IDataProvider
 
     public bool IsRunning => _worker != null && !_worker.IsCompleted;
 
-    private int updateIntervalInMs = 1000 / SDRConstants.UpdateIntervalInSec;
+    private readonly int updateIntervalInMs = 1000 / SDRConstants.UpdateIntervalInSec;
 
-    private readonly Channel<SignalDataPoint[]> _channel = Channel.CreateBounded<SignalDataPoint[]>(new BoundedChannelOptions(1)
+    private readonly Channel<SignalDataPoint[]> channel = Channel.CreateBounded<SignalDataPoint[]>(new BoundedChannelOptions(1)
     {
         FullMode = BoundedChannelFullMode.DropOldest
     });
 
-    public ChannelReader<SignalDataPoint[]> Reader => _channel.Reader;
+    public ChannelReader<SignalDataPoint[]> Reader => channel.Reader;
 
     public void Start()
     {
@@ -62,19 +62,16 @@ public class OneSignalDataProvider(IDataGenerator dataGenerator) : IDataProvider
         while (await timer.WaitForNextTickAsync(token))
         {
             var data = dataGenerator.GenerateData();
-            await _channel.Writer.WriteAsync(data, token);
+            await channel.Writer.WriteAsync(data, token);
         }
-    }
-
-    private async Task GenerateData()
-    {
-       
     }
 
     public async ValueTask DisposeAsync()
     {
         if (IsRunning && _worker != null) 
             await StopAsync();
+
+        channel?.Writer?.Complete();
 
         _cts?.Dispose();
         _cts = null;

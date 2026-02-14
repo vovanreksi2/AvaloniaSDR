@@ -1,18 +1,10 @@
-﻿using Avalonia;
-using Avalonia.Threading;
-using AvaloniaSDR.Constants;
-using AvaloniaSDR.DataProvider;
+﻿using AvaloniaSDR.Constants;
 using AvaloniaSDR.DataProvider.Providers;
-using DynamicData.Aggregation;
 using ReactiveUI;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace AvaloniaSDR.UI.ViewModels;
 
