@@ -8,7 +8,7 @@ public partial class WaterflowView
     public class WaterfallColorProvider
     {
         private readonly uint[] lut = [];
-        private const int lutSize = 256;
+        private const int lutSize = 1024;
 
         public WaterfallColorProvider()
         {
