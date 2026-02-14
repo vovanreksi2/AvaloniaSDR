@@ -2,52 +2,32 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
-using System;
-using System.Collections.Generic;
+using AvaloniaSDR.UI.ViewModels;
 using System.Runtime.InteropServices;
 
 namespace AvaloniaSDR.UI.Views;
 
 public partial class WaterflowView : Control
 {
-    public static readonly StyledProperty<Point[]?> WaterflowPointsProperty =
-    AvaloniaProperty.Register<WaterflowView, Point[]?>(nameof(WaterflowPoints));
+    public static readonly StyledProperty<NormalizeSignalPoint[]?> WaterflowPointsProperty =
+    AvaloniaProperty.Register<WaterflowView, NormalizeSignalPoint[]?>(nameof(WaterflowPoints));
 
-    public Point[]? WaterflowPoints
+    public NormalizeSignalPoint[]? WaterflowPoints
     {
         get => GetValue(WaterflowPointsProperty);
         set => SetValue(WaterflowPointsProperty, value);
-    } 
+    }
 
     private Size _lastSize;
 
-    private bool oneFires = false;
     private WriteableBitmap? bitmap;
-    private uint[] pixelBuffer;
-
-    private Dictionary<double, Color> gradients;
+    private int[] pixelBuffer;
+    private readonly WaterfallColor colorProvider;
 
     public WaterflowView()
     {
         InitializeComponent();
-
-        var gradientStops = new List<(double offset, Color color)>
-        {
-            (0.0, (Color)Color.Parse("#0000ff")),
-            (0.25, (Color)Color.Parse("#00ffff")),
-            (0.5, (Color)Color.Parse("#00ff00")),
-            (0.75, (Color)Color.Parse("#ffff00")),
-            (1.0, Color.Parse("#ff0000")),
-        };
-
-        gradients = new Dictionary<double, Color>();
-        int steps = 100; 
-        for (int i = 0; i <= steps; i++)
-        {
-            double t = i / (double)steps; 
-            Color c = InterpolateColor(gradientStops, t);
-            gradients[t] = c;
-        }
+        colorProvider = new WaterfallColor();
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -56,7 +36,7 @@ public partial class WaterflowView : Control
 
         if (change.Property == WaterflowPointsProperty)
         {
-            var points = (Point[])change.NewValue!;
+            var points = (NormalizeSignalPoint[])change.NewValue!;
             UpdateWaterflow(points);
             InvalidateVisual();
         }
@@ -70,8 +50,7 @@ public partial class WaterflowView : Control
         _lastSize = bounds.Size;
 
         bitmap = new WriteableBitmap(new PixelSize((int)bounds.Width, (int)bounds.Height), new Vector(96, 96));
-        pixelBuffer = new uint[(int)bounds.Width*200];
-
+        pixelBuffer = new int[(int)bounds.Width * 200];
     }
 
     public override void Render(DrawingContext context)
@@ -87,90 +66,115 @@ public partial class WaterflowView : Control
         );
     }
 
-    private void UpdateWaterflow(Point[] points)
+    private void UpdateWaterflow(NormalizeSignalPoint[] points)
     {
         if (WaterflowPoints == null || WaterflowPoints.Length == 0) return;
 
-        MoveWaterflowBitmap(bitmap);
+        WriteRowTopDown(bitmap, points);
+        //MoveWaterflowBitmap(bitmap);
 
-        WriteRow(bitmap, points);
+        //WriteRow(bitmap, points);
     }
 
-    private void MoveWaterflowBitmap(WriteableBitmap bitmap)
+    //private void MoveWaterflowBitmap(WriteableBitmap bitmap)
+    //{
+    //    int width = bitmap.PixelSize.Width;
+    //    int height = 200;
+
+    //    int rowWidth = width;
+
+    //    Array.Copy(
+    //            pixelBuffer,
+    //            0,
+    //            pixelBuffer,
+    //            rowWidth,
+    //            (height - 1) * rowWidth
+    //        );
+    //}
+
+    //public void WriteRow(WriteableBitmap bitmap, NormalizeSignalPoint[] points)
+    //{
+    //    int width = bitmap.PixelSize.Width;
+
+    //    for (int i = 0; i < width; i++)
+    //    {
+    //        var color = colorProvider.GetColor(points[i].SignalPower);
+
+    //        pixelBuffer[i] = color;
+    //    }
+
+    //    byte[] byteBuffer = new byte[pixelBuffer.Length * 4];
+    //    Buffer.BlockCopy(pixelBuffer, 0, byteBuffer, 0, byteBuffer.Length);
+
+    //    using var fb = bitmap.Lock();
+    //    Marshal.Copy(byteBuffer, 0, fb.Address, byteBuffer.Length);
+    //}
+
+    private int currentRow = 0;
+
+    public void WriteRowOptimized(WriteableBitmap bitmap, NormalizeSignalPoint[] points)
     {
         int width = bitmap.PixelSize.Width;
         int height = 200;
 
-        int rowWidth = width;
-
-        Array.Copy(
-                pixelBuffer,
-                0,
-                pixelBuffer,
-                rowWidth,
-                (height - 1) * rowWidth
-            );
-    }
-
-    public void WriteRow(WriteableBitmap bitmap, Point[] points)
-    {
-        int width = bitmap.PixelSize.Width;
-
-        // Записуємо новий рядок у верхню частину
+        // Записуємо кольори нового рядка у поточний рядок циклічного буфера
         for (int i = 0; i < width; i++)
         {
-            var normalizedY = GetNormalizedY(points[i].Y);
-            var color = GetColor(normalizedY);
-
-            pixelBuffer[i] = color; // верхній рядок
+            // GetColor повертає uint ARGB → приводимо до int
+            pixelBuffer[currentRow * width + i] = unchecked((int)colorProvider.GetColor(points[i].SignalPower));
         }
 
-        byte[] byteBuffer = new byte[pixelBuffer.Length * 4];
-        Buffer.BlockCopy(pixelBuffer, 0, byteBuffer, 0, byteBuffer.Length);
+        // Лок бітмапу
+        using var fb = bitmap.Lock();
+
+        // Копіюємо всі рядки у WriteableBitmap циклічно
+        for (int row = 0; row < height; row++)
+        {
+            int srcRow = (currentRow + row) % height;
+            Marshal.Copy(
+                pixelBuffer,
+                srcRow * width,
+                fb.Address + row * width * 4, // 4 байти на піксель
+                width
+            );
+        }
+
+        // Переходимо до наступного рядка
+        currentRow = (currentRow + 1) % height;
+    }
+
+    public void WriteRowTopDown(WriteableBitmap bitmap, NormalizeSignalPoint[] points)
+    {
+        int width = bitmap.PixelSize.Width;
+        int height = 200;
+
+        // Записуємо новий рядок у циклічний буфер
+        for (int i = 0; i < width; i++)
+        {
+            pixelBuffer[currentRow * width + i] = unchecked((int)colorProvider.GetColor(points[i].SignalPower));
+        }
 
         using var fb = bitmap.Lock();
-        Marshal.Copy(byteBuffer, 0, fb.Address, byteBuffer.Length);
-    }
-    private double GetNormalizedY(double signalPower)
-    {
-        var minDb = -120;
-        var maxDb = -20;
 
-        return (signalPower - minDb) / (maxDb - minDb);
-    }
 
-    private uint GetColor(double signalPower)
-    {
-        var signal = Math.Round(signalPower, 2);
-      
-        return gradients[signal].ToUInt32();
-    }
-
-    private Color InterpolateColor(List<(double offset, Color color)> stops, double t)
-    {
-        (double offset, Color color) lower = stops[0];
-        (double offset, Color color) upper = stops[^1];
-
-        foreach (var stop in stops)
+        // Відображаємо рядки у зворотному порядку
+        for (int row = 0; row < height; row++)
         {
-            if (stop.offset <= t)
-                lower = stop;
-            if (stop.offset >= t)
-            {
-                upper = stop;
-                break;
-            }
+            // srcRow — індекс рядка у циклічному буфері
+            int srcRow = (currentRow - row + height) % height; // <-- основна зміна
+
+            // destRow — рядок у бітмапі
+            int destRow = row;
+
+            Marshal.Copy(
+                pixelBuffer,
+                srcRow * width,
+                fb.Address + destRow * width * 4,
+                width
+            );
         }
 
-        if (upper.offset == lower.offset)
-            return lower.color;
-
-        double factor = (t - lower.offset) / (upper.offset - lower.offset);
-
-        byte r = (byte)(lower.color.R + factor * (upper.color.R - lower.color.R));
-        byte g = (byte)(lower.color.G + factor * (upper.color.G - lower.color.G));
-        byte b = (byte)(lower.color.B + factor * (upper.color.B - lower.color.B));
-
-        return Color.FromRgb(r, g, b);
+        // Зміщуємо currentRow на наступний рядок
+        currentRow = (currentRow + 1) % height;
     }
 }

@@ -1,16 +1,17 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using AvaloniaSDR.UI.ViewModels;
 using System.Linq;
 
 namespace AvaloniaSDR.UI.Views;
 
 public partial class SpectrumView : Control
 {
-    public static readonly StyledProperty<Point[]?> SpectrumPointsProperty =
-    AvaloniaProperty.Register<SpectrumView, Point[]?>(nameof(SpectrumPoints));
+    public static readonly StyledProperty<NormalizeSignalPoint[]?> SpectrumPointsProperty =
+    AvaloniaProperty.Register<SpectrumView, NormalizeSignalPoint[]?>(nameof(SpectrumPoints));
 
-    public Point[]? SpectrumPoints
+    public NormalizeSignalPoint[]? SpectrumPoints
     {
         get => GetValue(SpectrumPointsProperty);
         set => SetValue(SpectrumPointsProperty, value);
@@ -96,9 +97,6 @@ public partial class SpectrumView : Control
         var width = size.Width;
         var height = size.Height;
 
-        double minDb = -120;
-        double maxDb = -20;
-
         var points = SpectrumPoints;
 
         var geometry = new StreamGeometry();
@@ -109,10 +107,7 @@ public partial class SpectrumView : Control
         {
             double x = i * width / (points.Length - 1);
 
-           //Need to put this value from another thread
-            double normalized = (points[i].Y - minDb) / (maxDb - minDb);
-
-            double y = height - normalized * height;
+            double y = height - points[i].SignalPower * height;
 
             if (i == 0)
                 ctx.BeginFigure(new Point(x, y), false);
