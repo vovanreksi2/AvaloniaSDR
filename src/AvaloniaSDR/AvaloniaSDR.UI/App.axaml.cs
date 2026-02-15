@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using AvaloniaSDR.DataProvider;
+using AvaloniaSDR.UI.Diagnostics;
 using AvaloniaSDR.UI.ViewModels;
 using AvaloniaSDR.Views;
 using Microsoft.Extensions.DependencyInjection;
@@ -48,11 +49,12 @@ public partial class App : Application
     {
         services.AddLogging(builder =>
         {
-            builder.AddConsole();
+            builder.AddDebug();
             builder.SetMinimumLevel(LogLevel.Debug);
         });
 
         services.AddSingleton<MainWindow>();
+        services.AddSingleton<FrameMetrics>();
         services.AddSingleton<MainWindowViewModel>();
 
         services.AddDataProvider();

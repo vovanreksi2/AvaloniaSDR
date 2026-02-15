@@ -1,4 +1,5 @@
 using Avalonia.Media;
+using System;
 using System.Collections.Generic;
 
 namespace AvaloniaSDR.UI.Views;
@@ -57,7 +58,7 @@ public partial class WaterflowView
         public uint GetColor(double signalPower)
         {
             var index = (int)(signalPower * (lutSize - 1));
-
+            index = Math.Clamp(index, 0, lutSize - 1);
             return lut[index];
 
         }

@@ -2,6 +2,7 @@
 using AvaloniaSDR.Constants;
 using AvaloniaSDR.DataProvider;
 using AvaloniaSDR.DataProvider.Providers;
+using AvaloniaSDR.UI.Diagnostics;
 using ReactiveUI;
 using System;
 using System.Diagnostics;
@@ -14,16 +15,17 @@ namespace AvaloniaSDR.UI.ViewModels;
 public class MainWindowViewModel : ViewModelBase
 {
     private readonly IDataProvider dataProvider;
+    private readonly FrameMetrics? _frameMetrics;
 
     public ICommand StartCommand { get; }
     public ICommand StopCommand { get; }
 
     private SignalDataPoint[]? spectrumData;
-    public SignalDataPoint[]? SpectrumData 
-    { 
-        get => spectrumData; 
-        set => 
-            this.RaiseAndSetIfChanged(ref spectrumData, value); 
+    public SignalDataPoint[]? SpectrumData
+    {
+        get => spectrumData;
+        set =>
+            this.RaiseAndSetIfChanged(ref spectrumData, value);
     }
 
     private long frameVersion;
@@ -33,17 +35,58 @@ public class MainWindowViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref frameVersion, value);
     }
 
+    private double _currentFps;
+    public double CurrentFps
+    {
+        get => _currentFps;
+        set => this.RaiseAndSetIfChanged(ref _currentFps, value);
+    }
 
-    public MainWindowViewModel() : this(null!)
+    private double _avgFrameTimeMs;
+    public double AvgFrameTimeMs
+    {
+        get => _avgFrameTimeMs;
+        set => this.RaiseAndSetIfChanged(ref _avgFrameTimeMs, value);
+    }
+
+    private double _minFrameTimeMs;
+    public double MinFrameTimeMs
+    {
+        get => _minFrameTimeMs;
+        set => this.RaiseAndSetIfChanged(ref _minFrameTimeMs, value);
+    }
+
+    private double _maxFrameTimeMs;
+    public double MaxFrameTimeMs
+    {
+        get => _maxFrameTimeMs;
+        set => this.RaiseAndSetIfChanged(ref _maxFrameTimeMs, value);
+    }
+
+    private int _freezeCount;
+    public int FreezeCount
+    {
+        get => _freezeCount;
+        set => this.RaiseAndSetIfChanged(ref _freezeCount, value);
+    }
+
+    private bool _isMetricsOverlayVisible = true;
+    public bool IsMetricsOverlayVisible
+    {
+        get => _isMetricsOverlayVisible;
+        set => this.RaiseAndSetIfChanged(ref _isMetricsOverlayVisible, value);
+    }
+
+    public MainWindowViewModel() : this(null!, null)
     {
     }
 
- 
-    public MainWindowViewModel(IDataProvider dataProvider)
+    public MainWindowViewModel(IDataProvider dataProvider, FrameMetrics? frameMetrics)
     {
         StartCommand = ReactiveCommand.CreateFromTask(StartDataProviderAsync);
         StopCommand = ReactiveCommand.CreateFromTask(StopDataProviderAsync);
         this.dataProvider = dataProvider;
+        _frameMetrics = frameMetrics;
     }
 
     public async Task StartDataProviderAsync()
@@ -61,10 +104,20 @@ public class MainWindowViewModel : ViewModelBase
                     {
                         frame[i].SignalPower = (frame[i].SignalPower - SDRConstants.SignalPowerStart) / tmp;
                     }
-                    await  Dispatcher.UIThread.InvokeAsync(() =>
+
+                    _frameMetrics?.RecordFrame();
+                    var snapshot = _frameMetrics?.Snapshot ?? default;
+
+                    await Dispatcher.UIThread.InvokeAsync(() =>
                     {
                         SpectrumData = frame;
                         FrameVersion++;
+
+                        CurrentFps = snapshot.CurrentFps;
+                        AvgFrameTimeMs = snapshot.AvgFrameTimeMs;
+                        MinFrameTimeMs = snapshot.MinFrameTimeMs;
+                        MaxFrameTimeMs = snapshot.MaxFrameTimeMs;
+                        FreezeCount = snapshot.FreezeCount;
                     });  
                 }
             });
