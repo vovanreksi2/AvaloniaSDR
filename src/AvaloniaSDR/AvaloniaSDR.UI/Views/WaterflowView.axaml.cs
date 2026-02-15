@@ -100,9 +100,15 @@ public partial class WaterflowView : Control
         int width = bitmap.PixelSize.Width;
         int height = bitmap.PixelSize.Height;
 
+        double[] displayData =  width < points.Length
+            ? DownsampleWithMax(points.Select(_=> _.SignalPower).ToArray(), width)
+            : UpsampleSpectrum(points.Select(_ => _.SignalPower).ToArray(), width);
+
         Span<uint> lineBuffer = stackalloc uint[width];
         for (int i = 0; i < width; i++)
-            lineBuffer[i] = colorProvider.GetColor(points[i].SignalPower);
+        {
+            lineBuffer[i] = colorProvider.GetColor(displayData[i]);
+        }
 
         using var fb = bitmap.Lock();
         
@@ -114,4 +120,48 @@ public partial class WaterflowView : Control
             lineBuffer.CopyTo(pixels); 
         }
     }
+
+    public double[] DownsampleWithMax(double[] rawPowerData, int targetWidth)
+    {
+        if (targetWidth >= rawPowerData.Length)
+            return rawPowerData;  
+
+        var vector = Vector<double>.Build.Dense(rawPowerData);
+        double[] result = new double[targetWidth];
+
+        double pointsPerPixel = (double)rawPowerData.Length / targetWidth;
+
+        for (int i = 0; i < targetWidth; i++)
+        {
+            int start = (int)(i * pointsPerPixel);
+            int end = (int)((i + 1) * pointsPerPixel);
+
+            if (end > rawPowerData.Length) end = rawPowerData.Length;
+
+            var segment = vector.SubVector(start, end - start);
+            result[i] = segment.Maximum();
+        }
+
+        return result;
+    }
+
+    public double[] UpsampleSpectrum(double[] smallArray, int targetSize)
+    {
+        double[] xOriginal = new double[smallArray.Length];
+        for (int i = 0; i < smallArray.Length; i++)
+            xOriginal[i] = (double)i / (smallArray.Length - 1);
+
+        var interpolation = LinearSpline.InterpolateSorted(xOriginal, smallArray);
+
+        double[] upsampled = new double[targetSize];
+        for (int i = 0; i < targetSize; i++)
+        {
+            double xTarget = (double)i / (targetSize - 1);
+
+            upsampled[i] = interpolation.Interpolate(xTarget);
+        }
+
+        return upsampled;
+    }
+
 }
