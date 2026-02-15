@@ -1,12 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
-using Avalonia.Platform;
-using Avalonia.Rendering.SceneGraph;
-using Avalonia.Skia;
-using AvaloniaSDR.Constants;
 using AvaloniaSDR.DataProvider;
-using SkiaSharp;
 
 namespace AvaloniaSDR.UI.Views;
 
@@ -116,11 +111,14 @@ public partial class SpectrumView : Control
 
         using var ctx = geometry.Open();
 
-        for (var i = 0; i < points.Length; i++)
-        {
-            double x = i * width / (points.Length - 1);
+        double x = 0 * width / (points.Length - 1);
+        double y = height - points[0].SignalPower * height;
+        ctx.BeginFigure(new Point(x, y), false);
 
-            double y = height - points[i].SignalPower * height;
+        for (var i = 1; i < points.Length; i++)
+        {
+            x = i * width / (points.Length - 1);
+            y = height - points[i].SignalPower * height;
 
             if (i == 0)
                 ctx.BeginFigure(new Point(x, y), false);
