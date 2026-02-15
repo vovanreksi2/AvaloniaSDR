@@ -5,7 +5,7 @@
         xmlns:local="using:AvaloniaSDR.UI.Views"
 		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 		mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-		Width="2000"
+		Width="1500"
 		WindowStartupLocation="CenterScreen"
 		x:Class="AvaloniaSDR.Views.MainWindow"
 		x:DataType="vm:MainWindowViewModel"
@@ -19,7 +19,7 @@
 	</Design.DataContext>
 
 	<Panel>
-		<Grid RowDefinitions="60 * 2*" ShowGridLines="False" Width="1024">
+		<Grid RowDefinitions="60 200 200" ShowGridLines="False">
 			<StackPanel Orientation="Horizontal" Margin="5" >
 				<Button Command="{Binding StartCommand}"
 						Content="Start"

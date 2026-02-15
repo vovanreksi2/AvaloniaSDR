@@ -3,15 +3,11 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
-using Avalonia.Rendering.SceneGraph;
-using Avalonia.Skia;
-using Avalonia.Threading;
-using AvaloniaSDR.Constants;
 using AvaloniaSDR.DataProvider;
-using SkiaSharp;
+using MathNet.Numerics.Interpolation;
+using MathNet.Numerics.LinearAlgebra;
 using System;
-using System.Runtime.InteropServices;
-using System.Threading.Tasks.Dataflow;
+using System.Linq;
 
 namespace AvaloniaSDR.UI.Views;
 
@@ -38,18 +34,13 @@ public partial class WaterflowView : Control
     private Size _lastSize;
 
     private WriteableBitmap? bitmap;
-    private int[] pixelBuffer;
     private readonly WaterfallColorProvider colorProvider;
     private int currentRow = 0;
-
-    private SignalDataPoint[] pendingPoints;
-    private readonly object bufferLock = new object();
-
+    
     public WaterflowView()
     {
         InitializeComponent();
         colorProvider = new WaterfallColorProvider();
-
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -72,37 +63,70 @@ public partial class WaterflowView : Control
         if (_lastSize == bounds.Size) return;
 
         _lastSize = bounds.Size;
+        
+        RecreateBitmap(bounds.Size);
+    }
 
-        bitmap = new WriteableBitmap(new PixelSize((int)bounds.Width, (int)bounds.Height), new Vector(96, 96));
-        pixelBuffer = new int[(int)bounds.Width * (int)bounds.Height];
+    private void RecreateBitmap(Size size)
+    {
+        var scaling = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1.0;
+
+        int pixelWidth = (int)(size.Width * scaling);
+        int pixelHeight = (int)(size.Height * scaling);
+
+        if (pixelWidth <= 0 || pixelHeight <= 0) return;
+
+        bitmap?.Dispose();
+
+        bitmap = new WriteableBitmap(
+            new PixelSize(pixelWidth, pixelHeight),
+            new Vector(96 * scaling, 96 * scaling),
+            PixelFormat.Bgra8888,
+            AlphaFormat.Premul);
+
+        currentRow = 0;
     }
 
     public override void Render(DrawingContext context)
     {
-        if (bitmap == null) return;
+        if (bitmap == null || Bounds.Width <= 0 || Bounds.Height <= 0) return;
 
-        context.DrawImage(
-            bitmap,
-            new Rect(0, 0, bitmap.PixelSize.Width, bitmap.PixelSize.Height),
-            new Rect(0, 0, bitmap.PixelSize.Width, bitmap.PixelSize.Height)
-        );
+        var viewWidth = Bounds.Width;
+        var viewHeight = Bounds.Height;
+
+        var pixelWidth = bitmap.PixelSize.Width;
+        var pixelHeight = bitmap.PixelSize.Height;
+
+        var splitRatio = (double)(pixelHeight - currentRow) / pixelHeight;
+        var splitY = Math.Round(viewHeight * splitRatio);
+
+        var sourceRect1 = new Rect(0, currentRow, pixelWidth, pixelHeight - currentRow);
+        var destRect1 = new Rect(0, 0, viewWidth, splitY);
+        context.DrawImage(bitmap, sourceRect1, destRect1);
+
+        if (currentRow > 0)
+        {
+            var sourceRect2 = new Rect(0, 0, pixelWidth, currentRow);
+            var destRect2 = new Rect(0, splitY, viewWidth, viewHeight - splitY);
+            context.DrawImage(bitmap, sourceRect2, destRect2);
+        }
     }
 
     private void UpdateWaterflow(SignalDataPoint[] points)
     {
         if (WaterflowPoints == null || WaterflowPoints.Length == 0) return;
+        
+        var data = points.Select(p => p.SignalPower).ToArray();
 
-        WriteRowTopDown(bitmap, points);
+        WriteRowTopDown(bitmap!, data);
     }
 
-    public void WriteRowTopDown(WriteableBitmap bitmap, SignalDataPoint[] points)
+    public void WriteRowTopDown(WriteableBitmap bitmap, double[] points)
     {
         int width = bitmap.PixelSize.Width;
         int height = bitmap.PixelSize.Height;
 
-        double[] displayData =  width < points.Length
-            ? DownsampleWithMax(points.Select(_=> _.SignalPower).ToArray(), width)
-            : UpsampleSpectrum(points.Select(_ => _.SignalPower).ToArray(), width);
+        var displayData = GetNormalizedData(points, width);
 
         Span<uint> lineBuffer = stackalloc uint[width];
         for (int i = 0; i < width; i++)
@@ -111,15 +135,20 @@ public partial class WaterflowView : Control
         }
 
         using var fb = bitmap.Lock();
-        
         unsafe
         {
-            Span<uint> pixels = new((void*)fb.Address, width * height);
-            pixels[..(width * (height - 1))].CopyTo(pixels[width..]);  
+            uint* targetRow = (uint*)fb.Address + (currentRow * width);
+            Span<uint> dest = new(targetRow, width);
 
-            lineBuffer.CopyTo(pixels); 
+            lineBuffer.CopyTo(dest);
         }
+        currentRow = (currentRow - 1 + height) % height;
+
     }
+
+    private double[] GetNormalizedData(double[] points, int width) => width < points.Length
+            ? DownsampleWithMax(points, width)
+            : UpsampleSpectrum(points, width);
 
     public double[] DownsampleWithMax(double[] rawPowerData, int targetWidth)
     {
@@ -127,14 +156,14 @@ public partial class WaterflowView : Control
             return rawPowerData;  
 
         var vector = Vector<double>.Build.Dense(rawPowerData);
-        double[] result = new double[targetWidth];
+        var result = new double[targetWidth];
 
-        double pointsPerPixel = (double)rawPowerData.Length / targetWidth;
+        var pointsPerPixel = (double)rawPowerData.Length / targetWidth;
 
-        for (int i = 0; i < targetWidth; i++)
+        for (var i = 0; i < targetWidth; i++)
         {
-            int start = (int)(i * pointsPerPixel);
-            int end = (int)((i + 1) * pointsPerPixel);
+            var start = (int)(i * pointsPerPixel);
+            var end = (int)((i + 1) * pointsPerPixel);
 
             if (end > rawPowerData.Length) end = rawPowerData.Length;
 
@@ -163,5 +192,4 @@ public partial class WaterflowView : Control
 
         return upsampled;
     }
-
 }
