@@ -1,15 +1,17 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Rendering.SceneGraph;
 using Avalonia.Skia;
+using Avalonia.Threading;
 using AvaloniaSDR.Constants;
 using AvaloniaSDR.DataProvider;
 using SkiaSharp;
 using System;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks.Dataflow;
 
 namespace AvaloniaSDR.UI.Views;
 
@@ -40,17 +42,21 @@ public partial class WaterflowView : Control
     private readonly WaterfallColorProvider colorProvider;
     private int currentRow = 0;
 
+    private SignalDataPoint[] pendingPoints;
+    private readonly object bufferLock = new object();
+
     public WaterflowView()
     {
         InitializeComponent();
         colorProvider = new WaterfallColorProvider();
+
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
 
-        if (change.Property == WaterflowPointsProperty || change.Property == FrameVersionProperty)
+        if (change.Property == FrameVersionProperty)
         {
             if (WaterflowPoints != null)
             {
@@ -73,8 +79,6 @@ public partial class WaterflowView : Control
 
     public override void Render(DrawingContext context)
     {
-        base.Render(context);
-
         if (bitmap == null) return;
 
         context.DrawImage(

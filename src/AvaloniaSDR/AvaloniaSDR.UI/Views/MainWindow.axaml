@@ -18,28 +18,57 @@
 		<vm:MainWindowViewModel/>
 	</Design.DataContext>
 
-	<Grid RowDefinitions="60 * 2*" ShowGridLines="False" Width="1024">
-		<StackPanel Orientation="Horizontal" Margin="5" >
-			<Button Command="{Binding StartCommand}" 
-					Content="Start"
-					Padding="10" 
-					VerticalAlignment="Stretch"/>
-			<Button Command="{Binding StopCommand}" 
-					Content="Stop" 
-					Padding="10" 
-					Margin="20,0,0,0"
-					VerticalAlignment="Stretch"/>
-		</StackPanel>
+	<Panel>
+		<Grid RowDefinitions="60 * 2*" ShowGridLines="False" Width="1024">
+			<StackPanel Orientation="Horizontal" Margin="5" >
+				<Button Command="{Binding StartCommand}"
+						Content="Start"
+						Padding="10"
+						VerticalAlignment="Stretch"/>
+				<Button Command="{Binding StopCommand}"
+						Content="Stop"
+						Padding="10"
+						Margin="20,0,0,0"
+						VerticalAlignment="Stretch"/>
+				<ToggleButton Content="Metrics"
+							  Padding="10"
+							  Margin="20,0,0,0"
+							  VerticalAlignment="Stretch"
+							  IsChecked="{Binding IsMetricsOverlayVisible}"/>
+			</StackPanel>
 
-		<Grid Grid.Row="1">
-			<local:SpectrumView SpectrumPoints="{Binding SpectrumData}"
-								FrameVersion="{Binding FrameVersion}"/>
+			<Grid Grid.Row="1">
+				<local:SpectrumView SpectrumPoints="{Binding SpectrumData}"
+									FrameVersion="{Binding FrameVersion}"/>
+			</Grid>
+
+			<Grid Grid.Row="2">
+				<local:WaterflowView WaterflowPoints="{Binding SpectrumData}"
+									 FrameVersion="{Binding FrameVersion}"/>
+			</Grid>
 		</Grid>
-		
-		<Grid Grid.Row="2">
-			<local:WaterflowView WaterflowPoints="{Binding SpectrumData}"
-								 FrameVersion="{Binding FrameVersion}"/>
-		</Grid>
-	</Grid>
+
+		<Border HorizontalAlignment="Left"
+				VerticalAlignment="Top"
+				Margin="8,68,0,0"
+				Padding="6,4"
+				Background="#AA000000"
+				CornerRadius="4"
+				IsVisible="{Binding IsMetricsOverlayVisible}">
+			<TextBlock FontFamily="Courier New"
+					   FontSize="12"
+					   Foreground="LimeGreen">
+				<TextBlock.Text>
+					<MultiBinding StringFormat="FPS: {0:F1}  |  Frame: {1:F1}/{2:F1}/{3:F1} ms  |  Freezes: {4}">
+						<Binding Path="CurrentFps"/>
+						<Binding Path="MinFrameTimeMs"/>
+						<Binding Path="AvgFrameTimeMs"/>
+						<Binding Path="MaxFrameTimeMs"/>
+						<Binding Path="FreezeCount"/>
+					</MultiBinding>
+				</TextBlock.Text>
+			</TextBlock>
+		</Border>
+	</Panel>
 
 </Window>
