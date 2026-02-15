@@ -19,7 +19,7 @@
 	</Design.DataContext>
 
 	<Panel>
-		<Grid RowDefinitions="60 * 2*" ShowGridLines="False" Width="1024">
+		<Grid RowDefinitions="60 200 200" ShowGridLines="False">
 			<StackPanel Orientation="Horizontal" Margin="5" >
 				<Button Command="{Binding StartCommand}"
 						Content="Start"

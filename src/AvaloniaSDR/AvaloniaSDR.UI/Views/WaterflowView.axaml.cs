@@ -3,15 +3,11 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
-using Avalonia.Rendering.SceneGraph;
-using Avalonia.Skia;
-using Avalonia.Threading;
-using AvaloniaSDR.Constants;
 using AvaloniaSDR.DataProvider;
-using SkiaSharp;
+using MathNet.Numerics.Interpolation;
+using MathNet.Numerics.LinearAlgebra;
 using System;
-using System.Runtime.InteropServices;
-using System.Threading.Tasks.Dataflow;
+using System.Linq;
 
 namespace AvaloniaSDR.UI.Views;
 
@@ -38,18 +34,13 @@ public partial class WaterflowView : Control
     private Size _lastSize;
 
     private WriteableBitmap? bitmap;
-    private int[] pixelBuffer;
     private readonly WaterfallColorProvider colorProvider;
     private int currentRow = 0;
-
-    private SignalDataPoint[] pendingPoints;
-    private readonly object bufferLock = new object();
-
+    
     public WaterflowView()
     {
         InitializeComponent();
         colorProvider = new WaterfallColorProvider();
-
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -72,46 +63,84 @@ public partial class WaterflowView : Control
         if (_lastSize == bounds.Size) return;
 
         _lastSize = bounds.Size;
+        
+        RecreateBitmap(bounds.Size);
+    }
 
-        bitmap = new WriteableBitmap(new PixelSize((int)bounds.Width, (int)bounds.Height), new Vector(96, 96));
-        pixelBuffer = new int[(int)bounds.Width * (int)bounds.Height];
+    private void RecreateBitmap(Size size)
+    {
+        var scaling = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1.0;
+
+        int pixelWidth = (int)(size.Width * scaling);
+        int pixelHeight = (int)(size.Height * scaling);
+
+        if (pixelWidth <= 0 || pixelHeight <= 0) return;
+
+        bitmap?.Dispose();
+
+        bitmap = new WriteableBitmap(
+            new PixelSize(pixelWidth, pixelHeight),
+            new Vector(96 * scaling, 96 * scaling),
+            PixelFormat.Bgra8888,
+            AlphaFormat.Premul);
+
+        currentRow = 0;
     }
 
     public override void Render(DrawingContext context)
     {
-        if (bitmap == null) return;
+        if (bitmap == null || Bounds.Width <= 0 || Bounds.Height <= 0) return;
 
-        context.DrawImage(
-            bitmap,
-            new Rect(0, 0, bitmap.PixelSize.Width, bitmap.PixelSize.Height),
-            new Rect(0, 0, bitmap.PixelSize.Width, bitmap.PixelSize.Height)
-        );
+        double viewWidth = Bounds.Width;
+        double viewHeight = Bounds.Height;
+
+        int pixelWidth = bitmap.PixelSize.Width;
+        int pixelHeight = bitmap.PixelSize.Height;
+
+        double splitRatio = (double)(pixelHeight - currentRow) / pixelHeight;
+        double splitY = Math.Round(viewHeight * splitRatio);
+
+        var sourceRect1 = new Rect(0, currentRow, pixelWidth, pixelHeight - currentRow);
+        var destRect1 = new Rect(0, 0, viewWidth, splitY);
+        context.DrawImage(bitmap, sourceRect1, destRect1);
+
+        if (currentRow > 0)
+        {
+            var sourceRect2 = new Rect(0, 0, pixelWidth, currentRow);
+            var destRect2 = new Rect(0, splitY, viewWidth, viewHeight - splitY);
+            context.DrawImage(bitmap, sourceRect2, destRect2);
+        }
     }
 
     private void UpdateWaterflow(SignalDataPoint[] points)
     {
         if (WaterflowPoints == null || WaterflowPoints.Length == 0) return;
+        
+        var data = points.Select(p => p.SignalPower).ToArray();
 
-        WriteRowTopDown(bitmap, points);
+        WriteRowTopDown(bitmap, data);
     }
 
-    public void WriteRowTopDown(WriteableBitmap bitmap, SignalDataPoint[] points)
+    public void WriteRowTopDown(WriteableBitmap bitmap, double[] points)
     {
         int width = bitmap.PixelSize.Width;
         int height = bitmap.PixelSize.Height;
 
+        currentRow = (currentRow - 1 + height) % height;
+
         Span<uint> lineBuffer = stackalloc uint[width];
         for (int i = 0; i < width; i++)
-            lineBuffer[i] = colorProvider.GetColor(points[i].SignalPower);
+        {
+            lineBuffer[i] = colorProvider.GetColor(points[i]);
+        }
 
         using var fb = bitmap.Lock();
-        
         unsafe
         {
-            Span<uint> pixels = new((void*)fb.Address, width * height);
-            pixels[..(width * (height - 1))].CopyTo(pixels[width..]);  
+            uint* targetRow = (uint*)fb.Address + (currentRow * width);
+            Span<uint> dest = new(targetRow, width);
 
-            lineBuffer.CopyTo(pixels); 
+            lineBuffer.CopyTo(dest);
         }
     }
 }
