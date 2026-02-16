@@ -8,6 +8,7 @@ using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using Tmds.DBus.Protocol;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace AvaloniaSDR.UI.ViewModels;
@@ -89,6 +90,11 @@ public class MainWindowViewModel : ViewModelBase
         _frameMetrics = frameMetrics;
     }
 
+    private SignalDataPoint[]? _lastFrame;
+    public SignalDataPoint[]? GetLastFrame()
+    {
+        return _lastFrame;
+    }
     public async Task StartDataProviderAsync()
     {
         try
@@ -105,22 +111,47 @@ public class MainWindowViewModel : ViewModelBase
                         frame[i].SignalPower = (frame[i].SignalPower - SDRConstants.SignalPowerStart) / tmp;
                     }
 
-                    _frameMetrics?.RecordFrame();
-                    var snapshot = _frameMetrics?.Snapshot ?? default;
+                    _lastFrame = frame;
+
+                    //_frameMetrics?.RecordFrame();
+                    //var snapshot = _frameMetrics?.Snapshot ?? default;
 
                     await Dispatcher.UIThread.InvokeAsync(() =>
                     {
                         SpectrumData = frame;
                         FrameVersion++;
 
-                        CurrentFps = snapshot.CurrentFps;
-                        AvgFrameTimeMs = snapshot.AvgFrameTimeMs;
-                        MinFrameTimeMs = snapshot.MinFrameTimeMs;
-                        MaxFrameTimeMs = snapshot.MaxFrameTimeMs;
-                        FreezeCount = snapshot.FreezeCount;
-                    });  
+                        //CurrentFps = snapshot.CurrentFps;
+                        //AvgFrameTimeMs = snapshot.AvgFrameTimeMs;
+                        //MinFrameTimeMs = snapshot.MinFrameTimeMs;
+                        //MaxFrameTimeMs = snapshot.MaxFrameTimeMs;
+                        //FreezeCount = snapshot.FreezeCount;
+                    }, DispatcherPriority.Background);
                 }
             });
+
+            //await foreach (var frame in dataProvider.Reader.ReadAllAsync())
+            //{
+            //    for (int i = 0; i < frame.Length; i++)
+            //    {
+            //        frame[i].SignalPower = (frame[i].SignalPower - SDRConstants.SignalPowerStart) / tmp;
+            //    }
+
+            //    _frameMetrics?.RecordFrame();
+            //    var snapshot = _frameMetrics?.Snapshot ?? default;
+
+            //    await Dispatcher.UIThread.InvokeAsync(() =>
+            //    {
+            //        SpectrumData = frame;
+            //        FrameVersion++;
+
+            //        CurrentFps = snapshot.CurrentFps;
+            //        AvgFrameTimeMs = snapshot.AvgFrameTimeMs;
+            //        MinFrameTimeMs = snapshot.MinFrameTimeMs;
+            //        MaxFrameTimeMs = snapshot.MaxFrameTimeMs;
+            //        FreezeCount = snapshot.FreezeCount;
+            //    }, DispatcherPriority.Background);
+            //} 
         }
         catch (Exception ex)
         {
@@ -140,6 +171,3 @@ public class MainWindowViewModel : ViewModelBase
         }
     }
 }
-
-
-public record struct NormalizeSignalPoint(double Frequency, double SignalPower);

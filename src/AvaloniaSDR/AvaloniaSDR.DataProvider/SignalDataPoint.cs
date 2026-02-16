@@ -1,6 +1,6 @@
 ﻿namespace AvaloniaSDR.DataProvider;
 
-public record struct SignalDataPoint  
+public record struct SignalDataPoint 
 {
     public double Frequency { get; set; }
     public double SignalPower { get; set; }
