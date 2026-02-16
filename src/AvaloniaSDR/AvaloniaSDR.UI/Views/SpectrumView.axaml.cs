@@ -120,10 +120,7 @@ public partial class SpectrumView : Control
             x = i * width / (points.Length - 1);
             y = height - points[i].SignalPower * height;
 
-            if (i == 0)
-                ctx.BeginFigure(new Point(x, y), false);
-            else
-                ctx.LineTo(new Point(x, y));
+            ctx.LineTo(new Point(x, y));
         }
 
         spectrumGeometry = geometry;

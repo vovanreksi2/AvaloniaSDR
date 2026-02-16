@@ -17,5 +17,5 @@ public class SDRConstants
     public const double NoiseBaseLevel = -100.0;
     public const double NoiseRandomLevel = 0.5;
 
-    public const int UpdateIntervalInSec = 20;
+    public const int UpdateRateHz = 60;
 }

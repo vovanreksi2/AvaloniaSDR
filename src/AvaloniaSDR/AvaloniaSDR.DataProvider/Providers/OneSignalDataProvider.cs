@@ -16,7 +16,7 @@ public class OneSignalDataProvider(IDataGenerator dataGenerator) : IDataProvider
 
     public bool IsRunning => _worker != null && !_worker.IsCompleted;
 
-    private readonly int updateIntervalInMs = 1000 / SDRConstants.UpdateIntervalInSec;
+    private readonly int updateIntervalPerMs = 1000 / SDRConstants.UpdateRateHz;
 
     private readonly Channel<SignalDataPoint[]> channel = Channel.CreateBounded<SignalDataPoint[]>(new BoundedChannelOptions(1)
     {
@@ -57,11 +57,11 @@ public class OneSignalDataProvider(IDataGenerator dataGenerator) : IDataProvider
 
     private async Task RunAsync(CancellationToken token)
     {
-        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(updateIntervalInMs));
+        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(updateIntervalPerMs));
 
         while (await timer.WaitForNextTickAsync(token))
         {
-            var data = dataGenerator.GenerateData();
+            var data = (SignalDataPoint[])dataGenerator.GenerateData().Clone();
             await channel.Writer.WriteAsync(data, token);
         }
     }

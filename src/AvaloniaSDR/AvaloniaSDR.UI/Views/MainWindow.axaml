@@ -5,7 +5,7 @@
         xmlns:local="using:AvaloniaSDR.UI.Views"
 		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 		mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-		Width="1500"
+		Width="1500" Height="700"
 		WindowStartupLocation="CenterScreen"
 		x:Class="AvaloniaSDR.Views.MainWindow"
 		x:DataType="vm:MainWindowViewModel"
@@ -19,7 +19,7 @@
 	</Design.DataContext>
 
 	<Panel>
-		<Grid RowDefinitions="60 200 200" ShowGridLines="False">
+		<Grid RowDefinitions="60 200 500" ShowGridLines="False">
 			<StackPanel Orientation="Horizontal" Margin="5" >
 				<Button Command="{Binding StartCommand}"
 						Content="Start"
@@ -43,8 +43,7 @@
 			</Grid>
 
 			<Grid Grid.Row="2">
-				<local:WaterflowView WaterflowPoints="{Binding SpectrumData}"
-									 FrameVersion="{Binding FrameVersion}"/>
+				<local:WaterflowView/>
 			</Grid>
 		</Grid>
 
