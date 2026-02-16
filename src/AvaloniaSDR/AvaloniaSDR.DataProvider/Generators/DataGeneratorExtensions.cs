@@ -100,7 +100,7 @@ public static class DataGeneratorExtensions
             var composite = builder.Build();
 
             source.AddSingleton<IDataGenerator>(composite);
-            source.AddSingleton<IDataProvider, OneSignalDataProvider>();
+            source.AddSingleton<IDataProvider, SignalDataProvider>();
             return source;
         }
     }
