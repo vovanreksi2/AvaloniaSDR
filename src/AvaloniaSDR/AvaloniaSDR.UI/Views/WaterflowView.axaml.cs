@@ -4,7 +4,6 @@ using Avalonia.Media;
 using Avalonia.Rendering.Composition;
 using AvaloniaSDR.DataProvider;
 using AvaloniaSDR.DataProvider.Processing;
-using AvaloniaSDR.UI.ViewModels;
 using AvaloniaSDR.UI.Views.Waterfall;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -13,32 +12,42 @@ namespace AvaloniaSDR.UI.Views;
 
 public partial class WaterflowView : Control
 {
+    private Action _onCompositionTick;
+
+    public static readonly StyledProperty<SignalDataPoint[]?> WaterfallPointsProperty =
+        AvaloniaProperty.Register<WaterflowView, SignalDataPoint[]?>(nameof(WaterfallPoints));
+
+    public SignalDataPoint[]? WaterfallPoints
+    {
+        get => GetValue(WaterfallPointsProperty);
+        set => SetValue(WaterfallPointsProperty, value);
+    }
+
     private Size _lastSize;
     private double _scaling = 1.0;
 
     private IWaterfallRingBuffer? _buffer;
     private ISpectrumResampler? _resampler;
     private SignalDataPoint[]? _lastFrame;
-    private MainWindowViewModel? vm;
     private double[] _resampleBuffer = Array.Empty<double>();
     private Compositor? _compositor;
 
     public WaterflowView()
     {
         InitializeComponent();
+        _onCompositionTick = OnCompositionTick;
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        vm = (VisualRoot as Window)?.DataContext as MainWindowViewModel;
 
         var sp = (Application.Current as App)!.ServiceProvider;
-        _buffer   = sp.GetRequiredService<IWaterfallRingBuffer>();
+        _buffer    = sp.GetRequiredService<IWaterfallRingBuffer>();
         _resampler = sp.GetRequiredService<ISpectrumResampler>();
 
         _compositor = ElementComposition.GetElementVisual(this)?.Compositor;
-        _compositor?.RequestCompositionUpdate(OnCompositionTick);
+        _compositor?.RequestCompositionUpdate(_onCompositionTick);
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
@@ -50,11 +59,10 @@ public partial class WaterflowView : Control
 
     private void OnCompositionTick()
     {
-        var frame = vm?.GetLastFrame();
-        if (frame is { Length: > 0 } && frame != _lastFrame)
+        if (WaterfallPoints is not null && WaterfallPoints != _lastFrame)
         {
-            _lastFrame = frame;
-            UpdateWaterflow(frame);
+            _lastFrame = WaterfallPoints;
+            UpdateWaterflow(_lastFrame);
         }
 
         InvalidateVisual();
@@ -89,8 +97,7 @@ public partial class WaterflowView : Control
         var bitmap = _buffer?.Bitmap;
         if (bitmap == null || Bounds.Width <= 0 || Bounds.Height <= 0) return;
 
-        var viewWidth  = Bounds.Width;
-        var viewHeight = Bounds.Height;
+        var viewWidth   = Bounds.Width;
         var pixelWidth  = bitmap.PixelSize.Width;
         var pixelHeight = bitmap.PixelSize.Height;
 
@@ -108,16 +115,16 @@ public partial class WaterflowView : Control
 
         if (segment1Height > 0)
         {
-            var sourceRect1 = new Rect(0, newestRow, pixelWidth, segment1Height);
-            var destRect1   = new Rect(0, 0, viewWidth, splitY);
-            context.DrawImage(bitmap, sourceRect1, destRect1);
+            context.DrawImage(bitmap,
+                new Rect(0, newestRow, pixelWidth, segment1Height),
+                new Rect(0, 0, viewWidth, splitY));
         }
 
         if (effectiveSegment2Height > 0)
         {
-            var sourceRect2 = new Rect(0, 0, pixelWidth, effectiveSegment2Height);
-            var destRect2   = new Rect(0, splitY, viewWidth, effectiveSegment2Height / _scaling);
-            context.DrawImage(bitmap, sourceRect2, destRect2);
+            context.DrawImage(bitmap,
+                new Rect(0, 0, pixelWidth, effectiveSegment2Height),
+                new Rect(0, splitY, viewWidth, effectiveSegment2Height / _scaling));
         }
     }
 

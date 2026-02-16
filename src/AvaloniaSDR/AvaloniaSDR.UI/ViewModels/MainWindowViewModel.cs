@@ -58,7 +58,7 @@ public class MainWindowViewModel : ViewModelBase
                     await Dispatcher.UIThread.InvokeAsync(() =>
                     {
                         SpectrumData = frame;
-                    });
+                    }, DispatcherPriority.Background);
                 }
             });
         }
