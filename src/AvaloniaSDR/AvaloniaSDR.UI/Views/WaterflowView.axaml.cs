@@ -65,7 +65,9 @@ public partial class WaterflowView : Control
             UpdateWaterflow(_lastFrame);
         }
 
-        InvalidateVisual();
+        if (_lastFrame is not null)
+            InvalidateVisual();
+
         _compositor?.RequestCompositionUpdate(OnCompositionTick);
     }
 
