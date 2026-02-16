@@ -2,8 +2,8 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using AvaloniaSDR.DataProvider;
-using AvaloniaSDR.UI.Diagnostics;
 using AvaloniaSDR.UI.ViewModels;
+using AvaloniaSDR.UI.Views.Waterfall;
 using AvaloniaSDR.Views;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -15,6 +15,13 @@ public partial class App : Application
 {
     private IServiceProvider? _serviceProvider;
     private ILogger<App>? _logger;
+
+    /// <summary>
+    /// Exposes the DI container for controls that cannot receive constructor injection (XAML-instantiated).
+    /// Resolve services here inside <see cref="Avalonia.Controls.Control.OnAttachedToVisualTree"/>.
+    /// </summary>
+    public IServiceProvider ServiceProvider => _serviceProvider
+        ?? throw new InvalidOperationException("ServiceProvider accessed before OnFrameworkInitializationCompleted.");
 
     public override void Initialize()
     {
@@ -54,12 +61,12 @@ public partial class App : Application
         });
 
         services.AddSingleton<MainWindow>();
-        services.AddSingleton<FrameMetrics>();
         services.AddSingleton<MainWindowViewModel>();
+        services.AddSingleton<IWaterfallColorMapper, WaterfallColorMapper>();
 
         services.AddDataProvider(builder => builder
             .WithNoise()
-            .AddSignal(new TimeVaryingSignalDescriptor(100.0, 0.1,
+            .AddSignal(new TimeVaryingSignalDescriptor(100.0, 0.5,
             [
                 new SignalSegment(TimeSpan.FromSeconds(5), Power: 60.0),
                  new SignalSegment(TimeSpan.FromSeconds(3), Power: 20.0),

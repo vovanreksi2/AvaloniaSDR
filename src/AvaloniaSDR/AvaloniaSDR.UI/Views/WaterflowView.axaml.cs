@@ -7,7 +7,9 @@ using Avalonia.Rendering.Composition;
 using Avalonia.Threading;
 using AvaloniaSDR.DataProvider;
 using AvaloniaSDR.UI.ViewModels;
+using AvaloniaSDR.UI.Views.Waterfall;
 using MathNet.Numerics.Interpolation;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Buffers;
 
@@ -19,16 +21,15 @@ public partial class WaterflowView : Control
     private double _scaling = 1.0;
 
     private WriteableBitmap? bitmap;
-    private readonly WaterfallColorProvider colorProvider;
+    private IWaterfallColorMapper? colorProvider;
     private MainWindowViewModel? vm;
     private readonly DispatcherTimer timer;
     private int currentRow = 0;
     private int _filledRows = 0;
+
     public WaterflowView()
     {
         InitializeComponent();
-        colorProvider = new WaterfallColorProvider();
-
     }
 
     private Compositor? _compositor;
@@ -36,6 +37,9 @@ public partial class WaterflowView : Control
     {
         base.OnAttachedToVisualTree(e);
         vm = (VisualRoot as Window)?.DataContext as MainWindowViewModel;
+
+        var sp = (Application.Current as App)!.ServiceProvider;
+        colorProvider = sp.GetRequiredService<IWaterfallColorMapper>();
 
         _compositor = ElementComposition.GetElementVisual(this)?.Compositor;
         _compositor?.RequestCompositionUpdate(OnCompositionTick);
@@ -160,7 +164,7 @@ public partial class WaterflowView : Control
         Span<uint> lineBuffer = stackalloc uint[width];
         for (int i = 0; i < width; i++)
         {
-            lineBuffer[i] = colorProvider.GetColor(displayData[i]);
+            lineBuffer[i] = colorProvider!.GetColor(displayData[i]);
         }
 
         using var fb = bitmap.Lock();
