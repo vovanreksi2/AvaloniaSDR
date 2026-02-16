@@ -5,7 +5,7 @@ using System.Threading.Channels;
 
 namespace AvaloniaSDR.DataProvider.Providers;
 
-public class OneSignalDataProvider(IDataGenerator dataGenerator) : IDataProvider, IAsyncDisposable
+public class SignalDataProvider(IDataGenerator dataGenerator) : IDataProvider, IAsyncDisposable
 {
     private CancellationTokenSource? _cts;
     private Task? _worker;

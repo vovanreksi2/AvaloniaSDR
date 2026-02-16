@@ -1,9 +1,7 @@
-using AvaloniaSDR.Constants;
 using AvaloniaSDR.DataProvider.Providers;
-using AvaloniaSDR.DataProvider.Generators;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace AvaloniaSDR.DataProvider;
+namespace AvaloniaSDR.DataProvider.Generators;
 
 /// <summary>
 /// Fluent builder for composing data generators before DI registration.
@@ -102,31 +100,8 @@ public static class DataGeneratorExtensions
             var composite = builder.Build();
 
             source.AddSingleton<IDataGenerator>(composite);
-            source.AddSingleton<IDataProvider, OneSignalDataProvider>();
+            source.AddSingleton<IDataProvider, SignalDataProvider>();
             return source;
         }
-
-        ///// <summary>
-        ///// Legacy API: backward-compatible overload accepting old <see cref="SignalDescriptor"/> list.
-        ///// Each descriptor becomes a constant-power signal with an infinite segment.
-        ///// </summary>
-        //public IServiceCollection AddDataProvider(IEnumerable<SignalDescriptor>? signals = null)
-        //{
-        //    var resolvedSignals = signals ?? [
-        //        new SignalDescriptor(SDRConstants.SignalCenterFrequencyMHz, SDRConstants.SignalPower, SDRConstants.SignalWidthMHz),
-        //        new SignalDescriptor(95, 50, 0.5),
-        //        new SignalDescriptor(110, 60, 1),
-        //    ];
-
-        //    var builder = new DataProviderBuilder().WithNoise();
-        //    foreach (var sig in resolvedSignals)
-        //        builder.AddSignal(sig.CenterFrequencyMHz, sig.Power, sig.WidthMHz);
-
-        //    var composite = builder.Build();
-
-        //    source.AddSingleton<IDataGenerator>(composite);
-        //    source.AddSingleton<IDataProvider, OneSignalDataProvider>();
-        //    return source;
-        //}
     }
 }
