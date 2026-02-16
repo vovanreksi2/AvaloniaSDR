@@ -1,5 +1,5 @@
 using AvaloniaSDR.DataProvider;
-using AvaloniaSDR.DataProvider.Processing;
+using AvaloniaSDR.UI.Processing.Resampler;
 using NUnit.Framework;
 
 namespace AvaloniaSDR.Tests.Processing;

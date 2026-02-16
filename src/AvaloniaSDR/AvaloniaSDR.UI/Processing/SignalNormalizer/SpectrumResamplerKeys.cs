@@ -1,4 +1,4 @@
-namespace AvaloniaSDR.DataProvider.Processing;
+namespace AvaloniaSDR.UI.Processing.SignalNormalizer;
 
 internal static class SpectrumResamplerKeys
 {

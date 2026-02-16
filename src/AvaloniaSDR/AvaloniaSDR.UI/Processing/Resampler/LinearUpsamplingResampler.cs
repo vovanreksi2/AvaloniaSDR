@@ -1,7 +1,9 @@
+using AvaloniaSDR.DataProvider;
 using MathNet.Numerics.Interpolation;
+using System;
 using System.Buffers;
 
-namespace AvaloniaSDR.DataProvider.Processing;
+namespace AvaloniaSDR.UI.Processing.Resampler;
 
 /// <summary>Upsamples using linear spline interpolation. X-coordinate arrays are cached per input size to avoid per-frame allocations.</summary>
 public sealed class LinearUpsamplingResampler : ISpectrumResampler

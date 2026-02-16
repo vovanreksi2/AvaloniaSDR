@@ -1,6 +1,9 @@
+using AvaloniaSDR.DataProvider;
+using AvaloniaSDR.UI.Processing.SignalNormalizer;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 
-namespace AvaloniaSDR.DataProvider.Processing;
+namespace AvaloniaSDR.UI.Processing.Resampler;
 
 /// <summary>Delegates to <see cref="MaxHoldDownsampler"/> when downsampling and <see cref="LinearUpsamplingResampler"/> when upsampling.</summary>
 public sealed class AdaptiveSpectrumResampler : ISpectrumResampler

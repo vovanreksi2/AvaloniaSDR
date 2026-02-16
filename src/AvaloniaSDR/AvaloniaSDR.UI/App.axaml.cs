@@ -2,6 +2,9 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using AvaloniaSDR.DataProvider;
+using AvaloniaSDR.DataProvider.Generators;
+using AvaloniaSDR.UI.Processing.Resampler;
+using AvaloniaSDR.UI.Processing.SignalNormalizer;
 using AvaloniaSDR.UI.ViewModels;
 using AvaloniaSDR.UI.Views.Waterfall;
 using AvaloniaSDR.Views;
@@ -64,6 +67,8 @@ public partial class App : Application
         services.AddSingleton<MainWindowViewModel>();
         services.AddSingleton<IWaterfallColorMapper, WaterfallColorMapper>();
         services.AddSingleton<IWaterfallRingBuffer, WaterfallRingBuffer>();
+        
+        ConfigureProcessing(services);
 
         services.AddDataProvider(builder => builder
             .WithNoise()
@@ -91,6 +96,13 @@ public partial class App : Application
             );
     }
 
+    private void ConfigureProcessing(IServiceCollection services)
+    {
+        services.AddSingleton<ISignalNormalizer, SignalNormalizer>();
+        services.AddKeyedSingleton<ISpectrumResampler, MaxHoldDownsampler>(SpectrumResamplerKeys.Down);
+        services.AddKeyedSingleton<ISpectrumResampler, LinearUpsamplingResampler>(SpectrumResamplerKeys.Up);
+        services.AddSingleton<ISpectrumResampler, AdaptiveSpectrumResampler>();
+    }
 
     private void Log(Exception exception)
     {

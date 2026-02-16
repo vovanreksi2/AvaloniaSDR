@@ -1,4 +1,7 @@
-namespace AvaloniaSDR.DataProvider.Processing;
+using AvaloniaSDR.DataProvider;
+using System;
+
+namespace AvaloniaSDR.UI.Processing.Resampler;
 
 public interface ISpectrumResampler
 {

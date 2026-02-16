@@ -1,4 +1,7 @@
-namespace AvaloniaSDR.DataProvider.Processing;
+using AvaloniaSDR.DataProvider;
+using System;
+
+namespace AvaloniaSDR.UI.Processing.Resampler;
 
 /// <summary>Downsamples by taking the maximum power value in each output pixel bucket.</summary>
 public sealed class MaxHoldDownsampler : ISpectrumResampler

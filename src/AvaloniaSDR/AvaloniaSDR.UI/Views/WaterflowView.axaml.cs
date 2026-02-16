@@ -3,7 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Rendering.Composition;
 using AvaloniaSDR.DataProvider;
-using AvaloniaSDR.DataProvider.Processing;
+using AvaloniaSDR.UI.Processing.Resampler;
 using AvaloniaSDR.UI.Views.Waterfall;
 using Microsoft.Extensions.DependencyInjection;
 using System;

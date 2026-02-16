@@ -1,10 +1,7 @@
-using AvaloniaSDR.Constants;
-using AvaloniaSDR.DataProvider.Processing;
 using AvaloniaSDR.DataProvider.Providers;
-using AvaloniaSDR.DataProvider.Generators;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace AvaloniaSDR.DataProvider;
+namespace AvaloniaSDR.DataProvider.Generators;
 
 /// <summary>
 /// Fluent builder for composing data generators before DI registration.
@@ -104,9 +101,6 @@ public static class DataGeneratorExtensions
 
             source.AddSingleton<IDataGenerator>(composite);
             source.AddSingleton<IDataProvider, OneSignalDataProvider>();
-            source.AddKeyedSingleton<ISpectrumResampler, MaxHoldDownsampler>(SpectrumResamplerKeys.Down);
-            source.AddKeyedSingleton<ISpectrumResampler, LinearUpsamplingResampler>(SpectrumResamplerKeys.Up);
-            source.AddSingleton<ISpectrumResampler, AdaptiveSpectrumResampler>();
             return source;
         }
     }
