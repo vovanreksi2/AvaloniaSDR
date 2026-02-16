@@ -4,14 +4,12 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Rendering.Composition;
-using Avalonia.Threading;
 using AvaloniaSDR.DataProvider;
+using AvaloniaSDR.DataProvider.Processing;
 using AvaloniaSDR.UI.ViewModels;
 using AvaloniaSDR.UI.Views.Waterfall;
-using MathNet.Numerics.Interpolation;
 using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Buffers;
 
 namespace AvaloniaSDR.UI.Views;
 
@@ -22,17 +20,19 @@ public partial class WaterflowView : Control
 
     private WriteableBitmap? bitmap;
     private IWaterfallColorMapper? colorProvider;
+    private ISpectrumResampler? resampler;
     private MainWindowViewModel? vm;
-    private readonly DispatcherTimer timer;
     private int currentRow = 0;
     private int _filledRows = 0;
+    private double[] _resampleBuffer = Array.Empty<double>();
+    private SignalDataPoint[] _lastFrame;
+    private Compositor? _compositor;
 
     public WaterflowView()
     {
         InitializeComponent();
     }
 
-    private Compositor? _compositor;
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
@@ -40,6 +40,7 @@ public partial class WaterflowView : Control
 
         var sp = (Application.Current as App)!.ServiceProvider;
         colorProvider = sp.GetRequiredService<IWaterfallColorMapper>();
+        resampler = sp.GetRequiredService<ISpectrumResampler>();
 
         _compositor = ElementComposition.GetElementVisual(this)?.Compositor;
         _compositor?.RequestCompositionUpdate(OnCompositionTick);
@@ -179,9 +180,7 @@ public partial class WaterflowView : Control
         if (_filledRows < height) _filledRows++;
     }
 
-    private double[] _resampleBuffer = Array.Empty<double>();
-    private SignalDataPoint[] _lastFrame;
-
+    
     private Span<double> GetNormalizedData(SignalDataPoint[] points, int width)
     {
         if (_resampleBuffer.Length != width)
@@ -189,74 +188,8 @@ public partial class WaterflowView : Control
             _resampleBuffer = new double[width];
         }
 
-        if (width < points.Length)
-        {
-            DownsampleWithMax(points, _resampleBuffer);
-        }
-        else
-        {
-            UpsampleSpectrum(points, _resampleBuffer);
-        }
+        resampler!.Resample(points, _resampleBuffer);
 
         return _resampleBuffer.AsSpan();
-    }
-
-    public void DownsampleWithMax(ReadOnlySpan<SignalDataPoint> input, Span<double> destination)
-    {
-        int targetWidth = destination.Length;
-        double pointsPerPixel = (double)input.Length / targetWidth;
-
-        for (int i = 0; i < targetWidth; i++)
-        {
-            int start = (int)(i * pointsPerPixel);
-            int end = (int)((i + 1) * pointsPerPixel);
-            if (end > input.Length) end = input.Length;
-
-            double max = double.MinValue;
-            for (int j = start; j < end; j++)
-            {
-                if (input[j].SignalPower > max)
-                    max = input[j].SignalPower;
-            }
-            destination[i] = max;
-        }
-    }
-
-    public void UpsampleSpectrum(ReadOnlySpan<SignalDataPoint> input, Span<double> destination)
-    {
-        int inputLen = input.Length;
-        int targetLen = destination.Length;
-
-        // Rent temporary arrays from the pool instead of 'new'
-        double[] xOriginal = ArrayPool<double>.Shared.Rent(inputLen);
-        double[] yOriginal = ArrayPool<double>.Shared.Rent(inputLen);
-
-        try
-        {
-            for (int i = 0; i < inputLen; i++)
-            {
-                xOriginal[i] = (double)i / (inputLen - 1);
-                yOriginal[i] = input[i].SignalPower;
-            }
-
-            // Note: LinearSpline might still allocate internally. 
-            // For true zero-alloc, use a custom simple linear lerp.
-            var interpolation = LinearSpline.InterpolateSorted(
-                xOriginal.AsSpan(0, inputLen).ToArray(), // MathNet usually needs arrays
-                yOriginal.AsSpan(0, inputLen).ToArray()
-            );
-
-            for (int i = 0; i < targetLen; i++)
-            {
-                double xTarget = (double)i / (targetLen - 1);
-                destination[i] = interpolation.Interpolate(xTarget);
-            }
-        }
-        finally
-        {
-            // Always return rented arrays
-            ArrayPool<double>.Shared.Return(xOriginal);
-            ArrayPool<double>.Shared.Return(yOriginal);
-        }
     }
 }

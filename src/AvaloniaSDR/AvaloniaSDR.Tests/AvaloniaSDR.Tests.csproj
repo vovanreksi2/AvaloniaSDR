@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\AvaloniaSDR.DataProvider\AvaloniaSDR.DataProvider.csproj" />
     <ProjectReference Include="..\AvaloniaSDR.UI\AvaloniaSDR.UI.csproj" />
   </ItemGroup>
 
