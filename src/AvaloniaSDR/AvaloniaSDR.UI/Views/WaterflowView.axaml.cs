@@ -15,24 +15,6 @@ namespace AvaloniaSDR.UI.Views;
 
 public partial class WaterflowView : Control
 {
-    public static readonly StyledProperty<SignalDataPoint[]?> WaterflowPointsProperty =
-   AvaloniaProperty.Register<WaterflowView, SignalDataPoint[]?>(nameof(WaterflowPoints));
-
-    public SignalDataPoint[]? WaterflowPoints
-    {
-        get => GetValue(WaterflowPointsProperty);
-        set => SetValue(WaterflowPointsProperty, value);
-    }
-
-    public static readonly StyledProperty<long> FrameVersionProperty =
-    AvaloniaProperty.Register<WaterflowView, long>(nameof(FrameVersion));
-
-    public long FrameVersion
-    {
-        get => GetValue(FrameVersionProperty);
-        set => SetValue(FrameVersionProperty, value);
-    }
-
     private Size _lastSize;
     private double _scaling = 1.0;
 
@@ -62,11 +44,15 @@ public partial class WaterflowView : Control
     private void OnCompositionTick()
     {
         var frame = vm?.GetLastFrame();
-        if (frame != null && !ReferenceEquals(frame, _lastFrame))
+        if (frame != null)
         {
-            _lastFrame = frame;
+            if (frame != _lastFrame)
+            {
+                _lastFrame = frame;
+            }
             UpdateWaterflow(frame);
         }
+
 
         InvalidateVisual();
 
@@ -188,6 +174,7 @@ public partial class WaterflowView : Control
         currentRow = (currentRow - 1 + height) % height;
         if (_filledRows < height) _filledRows++;
     }
+
     private double[] _resampleBuffer = Array.Empty<double>();
     private SignalDataPoint[] _lastFrame;
 

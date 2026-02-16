@@ -12,10 +12,10 @@ public class SDRConstants
 
     public const double SignalCenterFrequencyMHz = 100.0;
     public const double SignalPower = 60.0;
-    public const double SignalWidthMHz = 0.5;
+    public const double SignalWidthMHz = 0.1;
 
     public const double NoiseBaseLevel = -100.0;
     public const double NoiseRandomLevel = 0.5;
 
-    public const int UpdateRateHz = 60;
+    public const int UpdateRateHz = 20;
 }

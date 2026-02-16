@@ -57,7 +57,30 @@ public partial class App : Application
         services.AddSingleton<FrameMetrics>();
         services.AddSingleton<MainWindowViewModel>();
 
-        services.AddDataProvider();
+        services.AddDataProvider(builder => builder
+            .WithNoise()
+            .AddSignal(new TimeVaryingSignalDescriptor(100.0, 0.1,
+            [
+                new SignalSegment(TimeSpan.FromSeconds(5), Power: 60.0),
+                 new SignalSegment(TimeSpan.FromSeconds(3), Power: 20.0),
+                 new SignalSegment(TimeSpan.FromSeconds(5), Power: 60.0),
+            ], Loop: true))
+            .AddSignal(new TimeVaryingSignalDescriptor(95.0, 0.5,
+                [
+                    new SignalSegment(TimeSpan.FromSeconds(1), Power: 61.0),
+                     new SignalSegment(TimeSpan.FromSeconds(2), Power: 50.0),
+                     new SignalSegment(TimeSpan.FromSeconds(3), Power: 60.0),
+                     new SignalSegment(TimeSpan.FromSeconds(3), Power: 40.0),
+                ], Loop: true))
+            .AddSignal(new TimeVaryingSignalDescriptor(106, 1,
+                [
+                    new SignalSegment(TimeSpan.FromSeconds(1), Power: 61.0),
+                     new SignalSegment(TimeSpan.FromSeconds(2), Power: 50.0),
+                     new SignalSegment(TimeSpan.FromSeconds(3), Power: 60.0),
+                     new SignalSegment(TimeSpan.FromSeconds(3), Power: 40.0),
+                     new SignalSegment(TimeSpan.FromSeconds(5), Power: 0.0),
+                ], Loop: true))
+            );
     }
 
 

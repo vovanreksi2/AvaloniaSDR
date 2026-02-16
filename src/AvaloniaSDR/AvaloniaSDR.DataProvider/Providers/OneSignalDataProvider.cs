@@ -1,10 +1,9 @@
 ﻿using AvaloniaSDR.Constants;
 using AvaloniaSDR.DataProvider.Generators;
+using System.Diagnostics;
 using System.Threading.Channels;
 
 namespace AvaloniaSDR.DataProvider.Providers;
-
-public delegate void DataGeneratedEventHandler(IEnumerable<SignalDataPoint> data);
 
 public class OneSignalDataProvider(IDataGenerator dataGenerator) : IDataProvider, IAsyncDisposable
 {
@@ -12,11 +11,9 @@ public class OneSignalDataProvider(IDataGenerator dataGenerator) : IDataProvider
     private Task? _worker;
     private readonly IDataGenerator dataGenerator = dataGenerator;
 
-    public event DataGeneratedEventHandler? DataGenerated;
-
     public bool IsRunning => _worker != null && !_worker.IsCompleted;
 
-    private readonly int updateIntervalPerMs = 1000 / SDRConstants.UpdateRateHz;
+    private readonly int updateIntervalInMs = 1000 / SDRConstants.UpdateRateHz;
 
     private readonly Channel<SignalDataPoint[]> channel = Channel.CreateBounded<SignalDataPoint[]>(new BoundedChannelOptions(1)
     {
@@ -57,18 +54,27 @@ public class OneSignalDataProvider(IDataGenerator dataGenerator) : IDataProvider
 
     private async Task RunAsync(CancellationToken token)
     {
-        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(updateIntervalPerMs));
+        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(updateIntervalInMs));
+        var stopwatch = Stopwatch.StartNew();
+        var totalDuration = dataGenerator.TotalDuration;
 
         while (await timer.WaitForNextTickAsync(token))
         {
-            var data = (SignalDataPoint[])dataGenerator.GenerateData().Clone();
+            var elapsed = stopwatch.Elapsed;
+
+            if (totalDuration != TimeSpan.MaxValue && elapsed >= totalDuration)
+            {
+                return;
+            }
+
+            var data = (SignalDataPoint[])dataGenerator.GenerateData(elapsed).Clone();
             await channel.Writer.WriteAsync(data, token);
-        }
+        } 
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (IsRunning && _worker != null) 
+        if (IsRunning && _worker != null)
             await StopAsync();
 
         channel?.Writer?.Complete();
