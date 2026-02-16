@@ -37,14 +37,11 @@ public partial class WaterflowView : Control
 
     private IWaterfallRingBuffer? _buffer;
     private ISpectrumResampler? _resampler;
-    private SignalDataPoint[]? _lastFrame;
     private double[] _resampleBuffer = Array.Empty<double>();
-    private Compositor? _compositor;
 
     public WaterflowView()
     {
         InitializeComponent();
-        _onCompositionTick = OnCompositionTick;
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
@@ -54,9 +51,6 @@ public partial class WaterflowView : Control
         var sp = (Application.Current as App)!.ServiceProvider;
         _buffer    = sp.GetRequiredService<IWaterfallRingBuffer>();
         _resampler = sp.GetRequiredService<ISpectrumResampler>();
-
-        _compositor = ElementComposition.GetElementVisual(this)?.Compositor;
-        _compositor?.RequestCompositionUpdate(_onCompositionTick);
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
@@ -65,21 +59,7 @@ public partial class WaterflowView : Control
         _buffer?.Dispose();
         _buffer = null;
     }
-
-    private void OnCompositionTick()
-    {
-        if (WaterfallPoints is not null && WaterfallPoints != _lastFrame)
-        {
-            _lastFrame = WaterfallPoints;
-            UpdateWaterflow(_lastFrame);
-        }
-
-        if (_lastFrame is not null && IsRunning)
-            InvalidateVisual();
-
-        _compositor?.RequestCompositionUpdate(OnCompositionTick);
-    }
-
+ 
     public override void Render(DrawingContext context)
     {
         DrawSpectrum(context);
@@ -88,6 +68,14 @@ public partial class WaterflowView : Control
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
+        if (change.Property == WaterfallPointsProperty)
+        {
+            if (WaterfallPoints != null)
+            {
+                UpdateWaterflow(WaterfallPoints);
+                InvalidateVisual();
+            }
+        }
 
         if (change.Property != BoundsProperty) return;
 
