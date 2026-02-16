@@ -17,6 +17,15 @@ public partial class WaterflowView : Control
     public static readonly StyledProperty<SignalDataPoint[]?> WaterfallPointsProperty =
         AvaloniaProperty.Register<WaterflowView, SignalDataPoint[]?>(nameof(WaterfallPoints));
 
+    public static readonly StyledProperty<bool> IsRunningProperty =
+        AvaloniaProperty.Register<WaterflowView, bool>(nameof(IsRunning));
+
+    public bool IsRunning
+    {
+        get => GetValue(IsRunningProperty);
+        set => SetValue(IsRunningProperty, value);
+    }
+
     public SignalDataPoint[]? WaterfallPoints
     {
         get => GetValue(WaterfallPointsProperty);
@@ -65,7 +74,7 @@ public partial class WaterflowView : Control
             UpdateWaterflow(_lastFrame);
         }
 
-        if (_lastFrame is not null)
+        if (_lastFrame is not null && IsRunning)
             InvalidateVisual();
 
         _compositor?.RequestCompositionUpdate(OnCompositionTick);

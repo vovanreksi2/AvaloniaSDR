@@ -27,6 +27,13 @@ public class MainWindowViewModel : ViewModelBase
 
     private SignalDataPoint[]? _lastFrame;
 
+    private bool isRunning;
+    public bool IsRunning
+    {
+        get => isRunning;
+        set => this.RaiseAndSetIfChanged(ref isRunning, value);
+    }
+
     public MainWindowViewModel() : this(null!, null!)     {    }
 
     public MainWindowViewModel(IDataProvider dataProvider, ISignalNormalizer normalizer)
@@ -43,6 +50,7 @@ public class MainWindowViewModel : ViewModelBase
     {
         try
         {
+            IsRunning = true;
             dataProvider.Start();
             _ = Task.Run(async () =>
             {
@@ -70,6 +78,7 @@ public class MainWindowViewModel : ViewModelBase
         try
         {
             await dataProvider.StopAsync();
+            IsRunning = false;
         }
         catch (Exception ex)
         {
