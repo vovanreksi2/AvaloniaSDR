@@ -31,7 +31,9 @@ public partial class SpectrumView : Control
     private readonly Pen spectrumPen = new(Brushes.YellowGreen, 1);
 
     private StreamGeometry? gridGeometry;
-    private StreamGeometry? spectrumGeometry;
+    private PathGeometry? spectrumGeometry;
+    private PathFigure? _spectrumFigure;
+    private LineSegment[]? _spectrumSegments;
 
     public SpectrumView()
     {
@@ -104,26 +106,28 @@ public partial class SpectrumView : Control
 
         var width = size.Width;
         var height = size.Height;
-
         var points = SpectrumPoints;
 
-        var geometry = new StreamGeometry();
-
-        using var ctx = geometry.Open();
-
-        double x = 0 * width / (points.Length - 1);
-        double y = height - points[0].SignalPower * height;
-        ctx.BeginFigure(new Point(x, y), false);
-
-        for (var i = 1; i < points.Length; i++)
+        if (_spectrumSegments == null || _spectrumSegments.Length != points.Length - 1)
         {
-            x = i * width / (points.Length - 1);
-            y = height - points[i].SignalPower * height;
+            _spectrumSegments = new LineSegment[points.Length - 1];
+            for (var i = 0; i < _spectrumSegments.Length; i++)
+                _spectrumSegments[i] = new LineSegment();
 
-            ctx.LineTo(new Point(x, y));
+            var pathSegments = new PathSegments();
+            pathSegments.AddRange(_spectrumSegments);
+
+            _spectrumFigure = new PathFigure { IsClosed = false, Segments = pathSegments };
+            spectrumGeometry = new PathGeometry { Figures = [_spectrumFigure] };
         }
 
-        spectrumGeometry = geometry;
+        _spectrumFigure!.StartPoint = new Point(0, height - points[0].SignalPower * height);
+        for (var i = 1; i < points.Length; i++)
+        {
+            _spectrumSegments[i - 1].Point = new Point(
+                i * width / (points.Length - 1),
+                height - points[i].SignalPower * height);
+        }
     }
 
 
