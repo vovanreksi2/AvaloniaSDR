@@ -1,0 +1,45 @@
+<Window xmlns="https://github.com/avaloniaui"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:vm="using:AvaloniaSDR.UI.ViewModels"
+		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:local="using:AvaloniaSDR.UI.Views"
+		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+		Width="1500" Height="700"
+		WindowStartupLocation="CenterScreen"
+		x:Class="AvaloniaSDR.Views.MainWindow"
+		x:DataType="vm:MainWindowViewModel"
+		Title="AvaloniaSDR">
+
+	<Design.DataContext>
+		<!-- This only sets the DataContext for the previewer in an IDE,
+		to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+		<vm:MainWindowViewModel/>
+	</Design.DataContext>
+
+	<Panel>
+		<Grid RowDefinitions="60 200 500" ShowGridLines="False">
+			<StackPanel Orientation="Horizontal" Margin="5" >
+				<Button Command="{Binding StartCommand}"
+						Content="Start"
+						Padding="10"
+						VerticalAlignment="Stretch"/>
+				<Button Command="{Binding StopCommand}"
+						Content="Stop"
+						Padding="10"
+						Margin="20,0,0,0"
+						VerticalAlignment="Stretch"/>
+			</StackPanel>
+
+			<Grid Grid.Row="1">
+				<local:SpectrumView SpectrumPoints="{Binding SpectrumData}"/>
+			</Grid>
+
+			<Grid Grid.Row="2">
+				<local:WaterflowView WaterfallPoints="{Binding SpectrumData}" IsRunning="{Binding IsRunning}"/>
+			</Grid>
+		</Grid>
+		
+	</Panel>
+
+</Window>
