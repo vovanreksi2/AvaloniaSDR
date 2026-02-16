@@ -63,6 +63,7 @@ public partial class App : Application
         services.AddSingleton<MainWindow>();
         services.AddSingleton<MainWindowViewModel>();
         services.AddSingleton<IWaterfallColorMapper, WaterfallColorMapper>();
+        services.AddSingleton<IWaterfallRingBuffer, WaterfallRingBuffer>();
 
         services.AddDataProvider(builder => builder
             .WithNoise()
