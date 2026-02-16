@@ -1,7 +1,8 @@
-using System;
 using Avalonia;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using AvaloniaSDR.Constants;
+using System;
 
 namespace AvaloniaSDR.UI.Views.Waterfall;
 
@@ -22,7 +23,7 @@ internal sealed class WaterfallRingBuffer(IWaterfallColorMapper colorMapper) : I
         _bitmap?.Dispose();
 
         _bitmap = new WriteableBitmap(
-            new PixelSize(pixelWidth, pixelHeight),
+            new PixelSize(pixelWidth, Math.Min(pixelHeight, SDRConstants.WaterfallMaxRows)),
             new Vector(96 * scaling, 96 * scaling),
             PixelFormat.Bgra8888,
             AlphaFormat.Premul);

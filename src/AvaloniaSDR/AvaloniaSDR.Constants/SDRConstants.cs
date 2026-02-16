@@ -18,4 +18,5 @@ public class SDRConstants
     public const double NoiseRandomLevel = 2.5;
 
     public const int UpdateRateHz = 20;
+    public const int WaterfallMaxRows = 200;
 }
