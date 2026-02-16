@@ -36,7 +36,7 @@
 			</Grid>
 
 			<Grid Grid.Row="2">
-				<local:WaterflowView WaterfallPoints="{Binding SpectrumData}"/>
+				<local:WaterflowView WaterfallPoints="{Binding SpectrumData}" IsRunning="{Binding IsRunning}"/>
 			</Grid>
 		</Grid>
 		
